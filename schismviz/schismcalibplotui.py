@@ -32,6 +32,7 @@ variable_units = {
     "temp": "deg C",
     "ssc": "mg/L",
 }
+VALID_VARIABLES = ["flow", "elev", "salt", "temp", "ssc"]
 
 
 def replace_with_paths_relative_to(base_dir, params):
@@ -41,12 +42,13 @@ def replace_with_paths_relative_to(base_dir, params):
         return [v] if isinstance(v, (str, pathlib.Path)) else v
 
     # Normalize possibly singular entries to lists before path interpretation
-    params["outputs_dir"] = _to_list(params.get("outputs_dir", []))
-    params["stations_csv"] = interpret_file_relative_to(
-        base_dir, params["stations_csv"]
+    params["outputs_dir"] = _to_list(
+        params.get("outputs_dir", params.get("output_dir", []))
     )
+    params["stations_csv"] = interpret_file_relative_to(base_dir, params["stations_csv"])
     params["obs_search_path"] = [
-        interpret_file_relative_to(base_dir, file) for file in params["obs_search_path"]
+        interpret_file_relative_to(base_dir, file)
+        for file in _to_list(params.get("obs_search_path", []))
     ]
     if "station_input" in params:
         params["station_input"] = [
@@ -79,10 +81,41 @@ class SchismCalibPlotUIManager(DataUIManager):
             base directory for config file, if None is assumed to be same as config file directory
         """
         base_dir = kwargs.pop("base_dir", None)
+        variable_override = kwargs.pop("variable", None)
+        selected_stations_override = kwargs.pop("selected_stations", None)
+        start_inst_override = kwargs.pop("start_inst", None)
+        end_inst_override = kwargs.pop("end_inst", None)
+        start_avg_override = kwargs.pop("start_avg", None)
+        end_avg_override = kwargs.pop("end_avg", None)
         super().__init__(**kwargs)
         self.config_file = config_file
         with open(self.config_file, "r") as file:
-            config = yaml.safe_load(file)
+            config = yaml.safe_load(file) or {}
+        if not isinstance(config, dict):
+            raise ValueError("Configuration file must contain a YAML mapping/object.")
+
+        # Compatibility aliases
+        if "outputs_dir" not in config and "output_dir" in config:
+            config["outputs_dir"] = config["output_dir"]
+        if "station_input" not in config and "station_in_file" in config:
+            config["station_input"] = config["station_in_file"]
+        if "flow_station_input" not in config and "flux_xsect_file" in config:
+            config["flow_station_input"] = config["flux_xsect_file"]
+
+        # CLI overrides
+        if variable_override:
+            config["variable"] = variable_override
+        if selected_stations_override:
+            config["selected_stations"] = list(selected_stations_override)
+        if start_inst_override:
+            config["start_inst"] = start_inst_override
+        if end_inst_override:
+            config["end_inst"] = end_inst_override
+        if start_avg_override:
+            config["start_avg"] = start_avg_override
+        if end_avg_override:
+            config["end_avg"] = end_avg_override
+
         # substitue the base_dir in config paths
         if base_dir is None:
             base_dir = pathlib.Path(self.config_file).parent
@@ -90,10 +123,39 @@ class SchismCalibPlotUIManager(DataUIManager):
             config["station_input"] = ["station.in"]
         if "flow_station_input" not in config:
             config["flow_station_input"] = ["fluxflag.prop"]
+
+        required_keys = [
+            "outputs_dir",
+            "stations_csv",
+            "obs_search_path",
+            "obs_links_csv",
+            "time_basis",
+            "start_inst",
+            "end_inst",
+            "start_avg",
+            "end_avg",
+            "labels",
+        ]
+        missing = [k for k in required_keys if k not in config]
+        if missing:
+            raise ValueError(f"Missing required config keys: {', '.join(missing)}")
+
+        if len(config["labels"]) < 2:
+            raise ValueError("labels must include at least two entries: Observed + one model run.")
+
+        if "variable" in config and config["variable"] not in VALID_VARIABLES:
+            raise ValueError(
+                f"Invalid variable '{config['variable']}'. Must be one of: {', '.join(VALID_VARIABLES)}"
+            )
+
         config = replace_with_paths_relative_to(
             base_dir, config
         )  # no replacement needed as schismstudy does it
         self.config = config
+        self.variable_filter = self.config.get("variable", None)
+        self.selected_stations = {
+            str(station_id) for station_id in self.config.get("selected_stations", [])
+        }
         # load studies and datastore
         self.reftime = pd.Timestamp(self.config["time_basis"])
         self.window_inst = (
@@ -181,8 +243,12 @@ class SchismCalibPlotUIManager(DataUIManager):
         )
         scat = scat.dropna()
         scat = scat[
-            scat["variable"].isin(["flow", "elev", "salt", "temp", "ssc"])
+            scat["variable"].isin(VALID_VARIABLES)
         ].reset_index(drop=True)
+        if self.variable_filter is not None:
+            scat = scat[scat["variable"] == self.variable_filter].reset_index(drop=True)
+        if self.selected_stations:
+            scat = scat[scat["id"].isin(self.selected_stations)].reset_index(drop=True)
         return scat
 
     def get_table_column_width_map(self):
@@ -431,7 +497,29 @@ import click
 @click.command()
 @click.argument("config_file", type=click.Path(exists=True, readable=True))
 @click.option("--base_dir", required=False, help="Base directory for config file")
-def schism_calib_plot_ui(config_file, base_dir=None, **kwargs):
+@click.option(
+    "--variable",
+    type=click.Choice(VALID_VARIABLES),
+    required=False,
+    help="Override variable from config (flow, elev, salt, temp, ssc)",
+)
+@click.option(
+    "--selected-station",
+    "selected_stations",
+    multiple=True,
+    help="Station ID to include. Repeat option for multiple stations.",
+)
+@click.option("--start-inst", required=False, help="Override start_inst date/time")
+@click.option("--end-inst", required=False, help="Override end_inst date/time")
+@click.option("--start-avg", required=False, help="Override start_avg date/time")
+@click.option("--end-avg", required=False, help="Override end_avg date/time")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Validate config and print resolved settings without launching the UI",
+)
+def schism_calib_plot_ui(config_file, base_dir=None, dry_run=False, **kwargs):
     """
     config_file: str
         yaml file containing configuration
@@ -441,7 +529,22 @@ def schism_calib_plot_ui(config_file, base_dir=None, **kwargs):
     """
     import cartopy.crs as ccrs
 
+    def _serialize_for_yaml(value):
+        if isinstance(value, pathlib.Path):
+            return str(value)
+        if isinstance(value, dict):
+            return {k: _serialize_for_yaml(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [_serialize_for_yaml(v) for v in value]
+        if isinstance(value, tuple):
+            return tuple(_serialize_for_yaml(v) for v in value)
+        return value
+
     manager = SchismCalibPlotUIManager(config_file, base_dir=base_dir, **kwargs)
+    if dry_run:
+        click.echo("Configuration validated successfully.")
+        click.echo(yaml.safe_dump(_serialize_for_yaml(manager.config), sort_keys=False))
+        return
     DataUI(manager, crs=ccrs.UTM(10)).create_view(
         title="Schism Calibration Plot UI"
     ).show()

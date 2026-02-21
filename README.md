@@ -4,6 +4,14 @@ A collection of holoviews visualizations for SCHISM
 
 Docs are at https://cadwrdeltamodeling.github.io/schismviz/html/index.html
 
+CLI reference: [README-cli.md](README-cli.md)
+
+Quick start:
+```bash
+schismviz --help
+schismviz output --yaml-file examples/schism_slr_studies.yaml
+```
+
 
 # Live examples
  0. [Mesh View 3D](https://schism.azurewebsites.net/00_mesh_view_3D)

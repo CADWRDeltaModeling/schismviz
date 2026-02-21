@@ -1,0 +1,37 @@
+schism_studies:
+    - label: "7.5"
+      base_dir: "simulations/set1_0075_clinic"
+      flux_xsect_file: "fluxflag.prop" # or the flow_stations_xsect.yaml file
+      station_in_file: "station.in"
+      output_dir: "outputs"
+      param_nml_file: "param.nml.clinic"
+      flux_out: "flux.out"
+      reftime: "2020-01-01"
+    - label: "15"
+      base_dir: "simulations/set1_0150_clinic"
+      flux_xsect_file: "fluxflag.prop" # or the flow_stations_xsect.yaml file
+      station_in_file: "station.in"
+      output_dir: "outputs"
+      param_nml_file: "param.nml.clinic"
+      flux_out: "flux.out"
+      reftime: "2020-01-01"
+    - label: "22.5"
+      base_dir: "simulations/set1_0225_clinic"
+      flux_xsect_file: "fluxflag.prop" # or the flow_stations_xsect.yaml file
+      station_in_file: "station.in"
+      output_dir: "outputs"
+      param_nml_file: "param.nml.clinic"
+      flux_out: "flux.out"
+      reftime: "2020-01-01"
+    - label: "30"
+      base_dir: "simulations/set1_0300_clinic"
+      flux_xsect_file: "fluxflag.prop" # or the flow_stations_xsect.yaml file
+      station_in_file: "station.in"
+      output_dir: "outputs"
+      param_nml_file: "param.nml.clinic"
+      flux_out: "flux.out"
+      reftime: "2020-01-01"
+    
+datastore:
+    repo_dir: /scratch/nasbdo/modeling_data/repo/continuous/screened
+    inventory_file: "/scratch/nasbdo/modeling_data/repo/continuous/inventory_datasets_screened_20260121.csv"

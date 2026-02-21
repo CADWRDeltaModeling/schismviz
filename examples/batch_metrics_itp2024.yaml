@@ -1,0 +1,69 @@
+# Batch metrics sample YAML
+# Outputs directories. They should contains station.in or flowlines.yaml.
+# The files used here have extra transects and sampling locations around Franks Tract
+
+outputs_dir:
+ - /scratch/projects/itp202411/simulations/itp2024_hist/outputs
+ #- /scratch/projects/itp202411/simulations/itp2024_no_op_x2/outputs
+ #- /scratch/projects/itp202411/simulations/itp2024_no_op_no_x2/outputs
+ - /scratch/projects/itp202411/simulations/itp2024_op_no_x2/outputs
+
+
+station_input:
+ - /scratch/projects/itp202411/simulations/itp2024_hist/station.in
+ #- /scratch/projects/itp202411/simulations/itp2024_no_op_x2/station.in
+ #- /scratch/projects/itp202411/simulations/itp2024_no_op_no_x2/station.in
+ - /scratch/projects/itp202411/simulations/itp2024_op_no_x2/station.in
+
+flow_station_input:
+  - /scratch/projects/itp202411/simulations/itp2024_hist/fluxflag.prop
+  #- /scratch/projects/itp202411/simulations/itp2024_no_op_x2/fluxflag.prop
+  #- /scratch/projects/itp202411/simulations/itp2024_no_op_no_x2/fluxflag.prop
+  - /scratch/projects/itp202411/simulations/itp2024_op_no_x2/fluxflag.prop
+# Station database
+# This is correct for flow, the one without _new is correct for station.in
+stations_csv: /scratch/psandhu/dms_datastore/dms_datastore/config_data/station_dbase.csv
+obs_search_path:
+ - /nasbdo/modeling_data/repo/continuous/screened
+
+
+# Database of the field data file
+# This is correct for flow. Use the one without _new for station.in
+#obs_links_csv: //cnrastore-bdo/Modeling_Data/repo/continuous/obs_links_screened_20240326.csv
+obs_links_csv: /nasbdo/modeling_data/repo/continuous/obs_links_screened_20250107.csv
+time_basis:  2024-05-15  # ISO date format (e.g. 2009-05-05)
+start_inst:  2024-06-15  # 5-15 to 6-15 for gate install flow/elev 9/20-10/10 good
+end_inst:    2024-10-01
+start_avg:   2024-06-15
+end_avg:     2024-10-01
+variable: salt # one of elev, salt, flow
+labels: # Three labels for field data and two runs
+  - Observed
+  - Hist
+  #- NoOp_X2
+  #- NoOp_NoX2
+  - Op_NoX2
+
+selected_stations:
+- fmb
+- anh
+- cll
+- sffpx
+- snc
+- srv
+- sjj
+- jer
+- osj
+- bdl
+- mrz
+- mtz
+- mal
+- nsl2
+- nsl
+- hun
+- gzl
+- mdm
+
+plot_all: False
+max_gap_to_fill: 4h
+remove_outliers: False
