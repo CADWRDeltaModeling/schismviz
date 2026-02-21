@@ -74,3 +74,7 @@ target/
 
 # pyenv python configuration file
 .python-version
+
+# setuptools_scm generated version module
+schismviz/_version.py
+

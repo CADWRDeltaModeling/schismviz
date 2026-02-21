@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=64.0", "wheel", "setuptools_scm[toml]>=7.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "schismviz/_version.py"
+version_scheme = "guess-next-dev"
+local_scheme = "node-and-date"
+fallback_version = "0.1.0"
+
+[project]
+name = "schismviz"
+dynamic = ["version"]
+description = "holoviews visualizations for schism"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+  {name = "Nicky Sandhu", email = "psandhu@water.ca.gov"}
+]
+keywords = ["schism", "visualization", "holoviews"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = []
+
+[project.scripts]
+schismviz = "schismviz.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/cadwrdeltamodeling/schismviz"
+Documentation = "https://github.com/cadwrdeltamodeling/schismviz#readme"
+"Bug Reports" = "https://github.com/cadwrdeltamodeling/schismviz/issues"
+"Source Code" = "https://github.com/cadwrdeltamodeling/schismviz"
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["schismviz*"]
+exclude = ["tests*", "docs*", "notebooks*"]

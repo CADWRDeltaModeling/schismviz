@@ -1,21 +1,19 @@
 name: schismviz
 channels:
-  - pyviz # conda-forge causing issues ? https://discourse.holoviz.org/t/blank-output-with-latest-holoviz-from-conda-forge/2276/5
   - conda-forge
   - cadwr-dms
 dependencies:
-  - python=3.8
+  - python=3.13
   - ipykernel #=6.17.1
-  - autopep8
   - metpy
   - schimpy
-  - numpy=1.23.5 # Temporary pin: Hitting this bug https://github.com/numba/numba/issues/8615
-  - xarray
+  - numpy
+  - xarray  
   - pandas
   - hvplot
-  - ipywidgets # pyvista requires trame which requires ipywidgets
-  - trame
-  - pyvista # 3D plots
+  - ipywidgets
+  #- trame
+  #- pyvista # 3D plots
   - cartopy
   - shapely
   - geopandas
@@ -27,4 +25,3 @@ dependencies:
   - scikit-learn
   - lxml
   - html5lib
-  - notebook # needed for dashboard panel

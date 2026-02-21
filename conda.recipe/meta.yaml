@@ -1,42 +1,41 @@
-{% set data = load_setup_py_data() %}
+{% set name = "schismviz" %}
+{% set pyproject = load_file_data('../pyproject.toml', from_recipe_dir=True) %}
+{% set version = VERSION %}
+{% set project = pyproject['project'] %}
 
 package:
-  name: schismviz
-  version: {{ data['version'] }}
+  name:           "{{ name|lower }}"
+  version:        "{{ version }}"
 
 source:
   path: ..
 
 build:
-  # If the installation is complex, or different between Unix and Windows, use
-  # separate bld.bat and build.sh files instead of this key.  Add the line
-  # "skip: True  # [py<35]" (for example) to limit to Python 3.5 and newer, or
-  # "skip: True  # [not win]" to limit to Windows.
-  script: {{ PYTHON }} -m pip install --no-deps --ignore-installed -vv .
+  script: {{ PYTHON }} -m pip install --no-build-isolation --no-deps --ignore-installed -vv .
   noarch: python
-
   entry_points:
-    {% for entry in data['entry_points']['console_scripts'] %}
-      - {{ entry.split('=')[0].strip() }} = {{ entry.split('=')[1].strip() }}
+    {% for script_name, script_ref in project['scripts'].items() %}
+    - {{ script_name }} = {{ script_ref }}
     {% endfor %}
 
-
 requirements:
-  # if you need compilers, uncomment these
-  #    read more at https://docs.conda.io/projects/conda-build/en/latest/resources/compiler-tools.html
-  # build:
-  #   - {{ compilers('c') }}
+  build:
+    - python
   host:
     - python
     - pip
+    {% for dep in pyproject['build-system']['requires'] %}
+    - {{ dep.lower() | replace('[toml]', '') }}
+    {% endfor %}
   run:
     - python
-    # dependencies are defined in setup.py
-    {% for dep in data['install_requires'] %}
+    {% for dep in project['dependencies'] %}
     - {{ dep.lower() }}
     {% endfor %}
 
 test:
+  imports:
+    - schismviz
   source_files:
     - tests
   requires:
@@ -44,9 +43,13 @@ test:
     - pytest-cov
   commands:
     - pytest
+    {% for script_name in project['scripts'] %}
+    - {{ script_name }} --version
+    {% endfor %}
 
 about:
-  home: https://github.com/cadwrdeltamodeling/schismviz
-  summary: holoviews visualizations for schism
-  license: {{ data.get('license') }}
+  home: "https://github.com/cadwrdeltamodeling/schismviz"
+  summary: "holoviews visualizations for schism"
+  license: "MIT"
   license_file: LICENSE
+
