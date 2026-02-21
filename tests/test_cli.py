@@ -1,4 +1,4 @@
-from schism_viz import cli
+from schismviz import cli
 
 def test_cli_template():
     assert cli.cli() is None

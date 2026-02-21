@@ -1,6 +1,6 @@
 {% set name = "schismviz" %}
 {% set pyproject = load_file_data('../pyproject.toml', from_recipe_dir=True) %}
-{% set version = VERSION %}
+{% set version = environ.get('VERSION', pyproject.get('tool', {}).get('setuptools_scm', {}).get('fallback_version', '0.0.0')) %}
 {% set project = pyproject['project'] %}
 
 package:
@@ -32,6 +32,11 @@ requirements:
     {% for dep in project['dependencies'] %}
     - {{ dep.lower() }}
     {% endfor %}
+    # cadwr-dms channel packages (not on PyPI)
+    - schimpy
+    - dvue
+    - vtools
+    - dms_datastore
 
 test:
   imports:
@@ -41,6 +46,9 @@ test:
   requires:
     - pytest
     - pytest-cov
+    - numpy
+    - xarray
+    - shapely
   commands:
     - pytest
     {% for script_name in project['scripts'] %}
