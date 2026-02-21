@@ -54,4 +54,4 @@ fi
 export VERSION
 
 # Build the conda package
-conda build conda.recipe/ -c cadwr-dms "$@"
+conda build conda.recipe/ -c conda-forge -c cadwr-dms  "$@"

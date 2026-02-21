@@ -3,6 +3,10 @@ import numpy as np
 import xarray as xr
 import pytest
 from shapely.geometry import Polygon
+
+# Skip the entire module if the optional suxarray dependencies are not installed
+pytest.importorskip("uxarray", reason="optional suxarray dependencies (uxarray, vtk, numba) not installed; install with: pip install schismviz[suxarray]")
+
 import schismviz.suxarray as sx
 
 

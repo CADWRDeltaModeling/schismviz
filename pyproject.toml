@@ -49,7 +49,13 @@ dependencies = [
     "spatialpandas>=0.4",
     "Pillow>=8.0",
     "networkx>=2.6",
+]
+
+[project.optional-dependencies]
+suxarray = [
     "uxarray>=2023.1",
+    "vtk>=9.0",
+    "numba>=0.50",
 ]
 
 [project.scripts]
