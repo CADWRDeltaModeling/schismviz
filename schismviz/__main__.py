@@ -1,3 +1,3 @@
-from schism_viz import cli
+from schismviz.cli import main
 
-cli.cli()
+main()

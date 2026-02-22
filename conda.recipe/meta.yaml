@@ -49,6 +49,10 @@ test:
     - numpy
     - xarray
     - shapely
+    # optional suxarray extras
+    - uxarray
+    - vtk
+    - numba
   commands:
     - pytest
     {% for script_name in project['scripts'] %}
