@@ -498,11 +498,11 @@ def read_hgrid_gr3(path_hgrid):
         n_faces, n_nodes = [int(x) for x in f.readline().strip().split()[:2]]
     # Read the node section. Read only up to the fourth column
     df_nodes = pd.read_csv(path_hgrid, skiprows=2, header=None,
-                           nrows=n_nodes, delim_whitespace=True, usecols=range(4))
+                           nrows=n_nodes, sep=r'\s+', usecols=range(4))
     # Read the face section. Read only up to the sixth column. The last column
     # may exist or not.
     df_faces = pd.read_csv(path_hgrid, skiprows=2 + n_nodes, header=None,
-                           nrows=n_faces, delim_whitespace=True, names=range(6))
+                           nrows=n_faces, sep=r'\s+', names=range(6))
     # TODO Read boundary information, if any
     # Create suxarray grid
     ds = xr.Dataset()

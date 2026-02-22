@@ -9,7 +9,15 @@ pytest.importorskip("uxarray", reason="optional suxarray dependencies (uxarray, 
 
 import schismviz.suxarray as sx
 
+_TESTDATA_DIR = Path(__file__).parent / "testdata"
+_NC_DATA_AVAILABLE = (_TESTDATA_DIR / "out2d_1.nc").exists()
+requires_nc_data = pytest.mark.skipif(
+    not _NC_DATA_AVAILABLE,
+    reason="testdata NC files (out2d_1.nc etc.) not available in this environment"
+)
 
+
+@requires_nc_data
 def test_suxarray_init_with_out2d():
     """ Test suxarray initialization with a SCHISM out2d file """
     # Test with a HelloSCHISM v5.10 out2d file
@@ -20,6 +28,7 @@ def test_suxarray_init_with_out2d():
     assert grid.ds.dims['nSCHISM_hgrid_node'] == 2639
 
 
+@requires_nc_data
 def test_get_topology_variable():
     """ Test get_topology_variable """
     # Test with a HelloSCHISM v5.10 out2d file
@@ -48,6 +57,8 @@ def test_triangulate(grid_test):
 def grid_test_dask():
     """ Test out2d_dask fixture """
     p_cur = Path(__file__).parent.absolute()
+    if not (p_cur / "testdata/out2d_1.nc").exists():
+        pytest.skip("testdata NC files not available in this environment")
     path_out2d = [str(p_cur / "testdata/out2d_{}.nc".format(i))
                   for i in range(1, 3)]
     ds_out2d = xr.open_mfdataset(path_out2d, mask_and_scale=False, data_vars='minimal')
