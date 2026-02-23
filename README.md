@@ -6,6 +6,8 @@ Docs are at https://cadwrdeltamodeling.github.io/schismviz/html/index.html
 
 CLI reference: [README-cli.md](README-cli.md)
 
+Viz CLI reference: [README-viz.md](README-viz.md)
+
 Quick start:
 ```bash
 schismviz --help
