@@ -146,12 +146,12 @@ class SchismStudy(param.Parameterized):
         # Clear the cache on initialization to start fresh each time
         if clear_cache_on_init:
             self.cache.clear()
+        nml = schimpyparam.read_params(self.param_nml_file)
         if not reftime:
-            nml = schimpyparam.read_params(self.param_nml_file)
             self.reftime = nml.run_start
-            self.endtime = nml.run_start + datetime.timedelta(days=nml["rnday"])
         else:
             self.reftime = pd.Timestamp(reftime)
+        self.endtime = self.reftime + datetime.timedelta(days=nml["rnday"])
         self.flux_xsect_file = self.interpret_file_relative_to(
             self.base_dir, pathlib.Path(flux_xsect_file)
         )
@@ -232,10 +232,10 @@ class SchismStudy(param.Parameterized):
             if self.flux_pts_gdf is not None:
                 flux_stations = self.flux_pts_gdf.copy()
                 flux_stations = flux_stations[
-                    ["station_id", "station_name", "geometry"]
+                    ["station_id", "name", "geometry"]
                 ]
                 flux_stations.rename(
-                    columns={"station_id": "id", "station_name": "name"}, inplace=True
+                    columns={"station_id": "id"}, inplace=True
                 )
                 flux_stations["variable"] = "flow"
                 flux_stations["unit"] = "m^3/s"
@@ -263,12 +263,19 @@ class SchismStudy(param.Parameterized):
         filename = row["filename"]
         if var == "flow":
             flux = self.get_flux()
+            if id not in flux.columns:
+                raise KeyError(
+                    f"Station '{id}' not found for variable '{var}' in '{self.flux_out}'"
+                )
             return flux[[id]]
         else:
             staout = self.get_staout(var)
-            if not ("_" in id):
-                id = id + "_default"
-            return staout[[id]]
+            lookup_id = id if "_" in id else id + "_default"
+            if lookup_id not in staout.columns:
+                raise KeyError(
+                    f"Station '{lookup_id}' not found for variable '{var}' in '{filename}'"
+                )
+            return staout[[lookup_id]]
 
     @lru_cache(maxsize=32)
     def get_flux(self):

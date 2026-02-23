@@ -1,3 +1,4 @@
+import logging
 import pandas as pd
 import cartopy.crs as ccrs
 import holoviews as hv
@@ -10,6 +11,8 @@ from . import schismstudy, datastore
 import pathlib
 import param
 import panel as pn
+
+logger = logging.getLogger(__name__)
 
 
 class SchismOutputUIDataManager(TimeSeriesDataUIManager):
@@ -56,8 +59,8 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         if datastore is not None:
             dfobs = self._convert_to_study_format(datastore.get_catalog())
             dfobs["source"] = "datastore"
-            dfcat = pd.concat([df, dfobs])
-        return dfcat
+            df = pd.concat([df, dfobs])
+        return df
 
     def _convert_to_study_format(self, df):
         df = df.copy()
@@ -146,7 +149,11 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         else:
             base_dir = str(pathlib.Path(r["filename"]).parent)
             study = self.study_dir_map[base_dir]
-            df = study.get_data(r)
+            try:
+                df = study.get_data(r)
+            except KeyError as e:
+                logger.warning(str(e).strip('"\''))
+                raise
         ptype = "INST-VAL"
         df = df[slice(df.first_valid_index(), df.last_valid_index())]
         return df, unit, ptype
@@ -285,8 +292,12 @@ def show_schism_output_ui(
     # Create the union range as a single variable
     time_range = (union_start, union_end)
 
-    # Create the datastore
-    ds = datastore.StationDatastore(repo_dir=repo_dir, inventory_file=inventory_file)
+    # Create the datastore only when the inventory file actually exists
+    ds = None
+    if pathlib.Path(inventory_file).exists():
+        ds = datastore.StationDatastore(repo_dir=repo_dir, inventory_file=inventory_file)
+    else:
+        logger.info("No datastore inventory file found (%s); running without observation datastore.", inventory_file)
 
     # Create the UI
     ui = DataUI(
