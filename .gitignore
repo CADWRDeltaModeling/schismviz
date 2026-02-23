@@ -8,6 +8,7 @@ tests/data
 **/dask-worker-space
 # python pickled data
 **/*.pkl 
+.*cache*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -58,6 +59,7 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
+junit.xml
 
 # Translations
 *.mo
