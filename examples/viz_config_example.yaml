@@ -1,0 +1,122 @@
+# =============================================================================
+# SCHISM Visualisation Configuration
+# =============================================================================
+#
+# Use this file with:
+#
+#   schismviz viz <command> --config viz_config.yaml
+#
+# CLI flags override the values in this file, so you can keep shared defaults
+# here and tweak individual runs on the command line without editing the file.
+#
+#   # override only the port:
+#   schismviz viz mesh-view -c viz_config.yaml --port 5099
+#
+# Paths can be absolute or relative to your working directory.
+# Glob patterns are supported for multi-file datasets (xarray open_mfdataset).
+# =============================================================================
+
+
+# ---------------------------------------------------------------------------
+# mesh-view  (schismviz viz mesh-view)
+# ---------------------------------------------------------------------------
+# Render the SCHISM unstructured mesh with datashader rasterisation.
+# Also renders XY / XZ / YZ cross-section projections.
+mesh_view:
+  hgrid: ./hgrid.gr3
+  width: 800
+  height: 400
+  title: "SCHISM Mesh View"
+  port: 5006
+
+
+# ---------------------------------------------------------------------------
+# elevation  (schismviz viz elevation)
+# ---------------------------------------------------------------------------
+# Interactive 3-D water-surface elevation animation (Plotly backend).
+# Animates both the fixed bathymetry mesh and the time-varying water surface.
+elevation_animation:
+  hgrid: ./hgrid.gr3
+  out2d_pattern: "./outputs/out2d_*.nc"
+  width: 800
+  height: 800
+  title: "Water Surface Elevation"
+  port: 5007
+
+
+# ---------------------------------------------------------------------------
+# var-animation  (schismviz viz var-animation)
+# ---------------------------------------------------------------------------
+# Animate any node-based scalar variable (salinity, temperature, etc.)
+# with independent time-step and vertical-layer sliders.
+var_animation:
+  hgrid: ./hgrid.gr3
+  var_pattern: "./outputs/salinity_*.nc"
+  varname: salinity             # must match the variable name inside the nc files
+  width: 600
+  height: 400
+  title: "Salinity"
+  port: 5008
+
+
+# ---------------------------------------------------------------------------
+# velocity  (schismviz viz velocity)
+# ---------------------------------------------------------------------------
+# Depth-averaged velocity vector field.  An interactive scale widget lets
+# you adjust arrow length at runtime.
+velocity_vectors:
+  out2d_pattern: "./outputs/out2d_*.nc"
+  width: 600
+  height: 400
+  title: "Depth-Averaged Velocity Vectors"
+  port: 5009
+
+
+# ---------------------------------------------------------------------------
+# var-velocity  (schismviz viz var-velocity)
+# ---------------------------------------------------------------------------
+# Scalar variable coloured mesh overlaid with depth-averaged velocity arrows.
+# Both time and vertical level are selectable.
+var_velocity_animation:
+  hgrid: ./hgrid.gr3
+  out2d_pattern: "./outputs/out2d_*.nc"
+  var_pattern: "./outputs/salinity_*.nc"
+  varname: salinity
+  width: 1000
+  height: 500
+  title: "Salinity + Depth-Averaged Velocity"
+  port: 5010
+
+
+# ---------------------------------------------------------------------------
+# var-velocity-level  (schismviz viz var-velocity-level)
+# ---------------------------------------------------------------------------
+# Like var-velocity, but uses the full 3-D horizontal velocity fields
+# (horizontalVelX / horizontalVelY) so the arrows vary with depth level.
+var_velocity_level_animation:
+  hgrid: ./hgrid.gr3
+  out2d_pattern: "./outputs/out2d_*.nc"
+  velx_pattern: "./outputs/horizontalVelX_*.nc"
+  vely_pattern: "./outputs/horizontalVelY_*.nc"
+  var_pattern: "./outputs/salinity_*.nc"
+  varname: salinity
+  width: 1000
+  height: 500
+  title: "Salinity + Per-Level Velocity"
+  port: 5011
+
+
+# ---------------------------------------------------------------------------
+# stations  (schismviz viz stations)
+# ---------------------------------------------------------------------------
+# Interactive map: red dots = stations from station.in.  Click a dot to see
+# the time-series from the staout_N files for the chosen variable type.
+stations_map:
+  hgrid: ./hgrid.gr3
+  station_in: ./station.in
+  staout_prefix: "./outputs/staout_"  # numeric suffix (1-9) is appended automatically
+  reftime: "2000-01-01"               # ISO-8601 model reference time
+  width: 800
+  height: 400
+  title: "Station Output Display"
+  port: 5012
