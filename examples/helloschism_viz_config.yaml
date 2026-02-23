@@ -1,0 +1,107 @@
+# =============================================================================
+# SCHISM Visualisation Config – m1_hello_schism test case
+# =============================================================================
+#
+# Run from the examples directory with:
+#
+#   conda activate schismviz
+#   cd /path/to/schismviz/examples
+#   schismviz viz <command> -c helloschism_viz_config.yaml
+#
+# Paths below are relative to the examples directory.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# mesh-view  (notebook 08_view_mesh_fast)
+# ---------------------------------------------------------------------------
+mesh_view:
+  hgrid: ./m1_hello_schism/hgrid.gr3
+  width: 800
+  height: 400
+  title: "m1_hello_schism: Mesh View"
+  port: 5006
+
+# ---------------------------------------------------------------------------
+# elevation  (notebook 01_water_surface_elevation_animation)
+# ---------------------------------------------------------------------------
+elevation_animation:
+  hgrid: ./m1_hello_schism/hgrid.gr3
+  out2d_pattern: "./m1_hello_schism/outputs/out2d_*.nc"
+  width: 800
+  height: 800
+  title: "m1_hello_schism: Water Surface Elevation"
+  port: 5007
+
+# ---------------------------------------------------------------------------
+# var-animation  (notebook 02_salinity_animation)
+# ---------------------------------------------------------------------------
+var_animation:
+  hgrid: ./m1_hello_schism/hgrid.gr3
+  var_pattern: "./m1_hello_schism/outputs/salinity_*.nc"
+  varname: salinity
+  width: 600
+  height: 400
+  title: "m1_hello_schism: Salinity"
+  port: 5008
+
+# ---------------------------------------------------------------------------
+# temperature var-animation  (same command, different variable)
+# ---------------------------------------------------------------------------
+# To use this section, run:
+#   schismviz viz var-animation \
+#       --hgrid ./m1_hello_schism/hgrid.gr3 \
+#       --var-pattern "./m1_hello_schism/outputs/temperature_*.nc" \
+#       --varname temperature
+#
+# (No named YAML section for this one – override on the command line.)
+
+# ---------------------------------------------------------------------------
+# velocity  (notebook 03_velocity_vectors)
+# ---------------------------------------------------------------------------
+velocity_vectors:
+  out2d_pattern: "./m1_hello_schism/outputs/out2d_*.nc"
+  width: 600
+  height: 400
+  title: "m1_hello_schism: Depth-Averaged Velocity Vectors"
+  port: 5009
+
+# ---------------------------------------------------------------------------
+# var-velocity  (notebook 04_salinity_and_velocity_animation)
+# ---------------------------------------------------------------------------
+var_velocity_animation:
+  hgrid: ./m1_hello_schism/hgrid.gr3
+  out2d_pattern: "./m1_hello_schism/outputs/out2d_*.nc"
+  var_pattern: "./m1_hello_schism/outputs/salinity_*.nc"
+  varname: salinity
+  width: 1000
+  height: 500
+  title: "m1_hello_schism: Salinity + Depth-Averaged Velocity"
+  port: 5010
+
+# ---------------------------------------------------------------------------
+# var-velocity-level  (notebook 05_salinity_and_velocity_per_level_animation)
+# ---------------------------------------------------------------------------
+var_velocity_level_animation:
+  hgrid: ./m1_hello_schism/hgrid.gr3
+  out2d_pattern: "./m1_hello_schism/outputs/out2d_*.nc"
+  velx_pattern: "./m1_hello_schism/outputs/horizontalVelX_*.nc"
+  vely_pattern: "./m1_hello_schism/outputs/horizontalVelY_*.nc"
+  var_pattern: "./m1_hello_schism/outputs/salinity_*.nc"
+  varname: salinity
+  width: 1000
+  height: 500
+  title: "m1_hello_schism: Salinity + Per-Level Velocity"
+  port: 5011
+
+# ---------------------------------------------------------------------------
+# stations  (notebook 09_stations_map)
+# ---------------------------------------------------------------------------
+stations_map:
+  hgrid: ./m1_hello_schism/hgrid.gr3
+  station_in: ./m1_hello_schism/station.in
+  staout_prefix: ./m1_hello_schism/outputs/staout_
+  reftime: "2000-01-01"
+  width: 800
+  height: 400
+  title: "m1_hello_schism: Stations Map"
+  port: 5012

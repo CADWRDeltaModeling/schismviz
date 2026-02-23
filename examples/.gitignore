@@ -1,0 +1,6 @@
+# HelloSCHISM model data – must be generated locally (see helloschism_README.md)
+m1_hello_schism/
+
+# schismstudy disk cache
+.cache-schismstudy/
+.cache-ds/

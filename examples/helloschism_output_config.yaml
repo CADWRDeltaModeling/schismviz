@@ -1,0 +1,50 @@
+# =============================================================================
+# SCHISM Output UI Configuration – m1_hello_schism test case
+# =============================================================================
+#
+# Use this file with:
+#
+#   conda activate schismviz
+#   cd /path/to/schismviz/examples
+#   schismviz output --yaml-file helloschism_output_config.yaml
+#
+# Paths are relative to this file's location (examples/).
+# Glob patterns are NOT used here; paths must point to real files/directories.
+#
+# Each entry under `schism_studies` is passed to SchismStudy.  The fields
+# shown below are the most common ones; all others fall back to the defaults
+# shown in parentheses.
+#
+# Override precedence:  YAML  <  CLI flag
+# E.g. to override the reftime at run-time:
+#   schismviz output --yaml-file helloschism_output_config.yaml --reftime 2000-02-01
+# =============================================================================
+
+schism_studies:
+  - label: "m1_hello_schism"
+    # Directory that contains param.nml, station.in, flowlines.yaml …
+    base_dir: "./m1_hello_schism"
+    # Sub-directory (under base_dir) that holds the SCHISM output files
+    output_dir: "outputs"
+    # Name of the NAMELIST file used to derive run start/end when reftime
+    # is not specified explicitly (default: "param.nml")
+    param_nml_file: "param.nml"
+    # Cross-section file for flux/flow computations.
+    # Accepts either a SCHISM fluxflag.prop or a YAML linestrings file.
+    flux_xsect_file: "flowlines.yaml"
+    # Station output index file produced by SCHISM (default: "station.in")
+    station_in_file: "station.in"
+    # Flux output file produced by SCHISM (default: "flux.out")
+    flux_out: "flux.out"
+    # Reference / start time of the simulation.
+    # If omitted, the value is read from param.nml (start_year/month/day).
+    # param.nml for this run: start_year=2000, start_month=1, start_day=1
+    reftime: "2000-01-01"
+
+# ---------------------------------------------------------------------------
+# Optional: screened observation datastore for comparison with model output.
+# Remove or comment out this section if no screened datastore is available.
+# ---------------------------------------------------------------------------
+# datastore:
+#   repo_dir: /path/to/repo/continuous/screened
+#   inventory_file: /path/to/inventory_datasets_screened.csv
