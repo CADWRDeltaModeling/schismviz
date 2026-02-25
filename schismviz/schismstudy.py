@@ -30,6 +30,7 @@ logger.addHandler(console_handler)
 
 from dvue import utils
 
+
 def read_station_in(station_in_file):
     return station.read_station_in(station_in_file)
 
@@ -187,9 +188,9 @@ class SchismStudy(param.Parameterized):
             self.flux_pts_gdf = flux_df.merge(
                 self.stations_gdf, on="station_id", how="left"
             )
-            self.flux_pts_gdf = self.flux_pts_gdf.rename(
-                columns={"name": "station_name"}
-            )
+            self.flux_pts_gdf = self.flux_pts_gdf.drop(
+                columns=["name"], errors="ignore"
+            ).rename(columns={"flux_name": "name"})
             self.flux_names = names
 
     def interpret_file_relative_to(self, base_dir, fpath):
@@ -231,12 +232,8 @@ class SchismStudy(param.Parameterized):
             # TODO: if flux_pts_gdf is empty, then use the flux_names to create geometry
             if self.flux_pts_gdf is not None:
                 flux_stations = self.flux_pts_gdf.copy()
-                flux_stations = flux_stations[
-                    ["station_id", "name", "geometry"]
-                ]
-                flux_stations.rename(
-                    columns={"station_id": "id"}, inplace=True
-                )
+                flux_stations = flux_stations[["station_id", "name", "geometry"]]
+                flux_stations.rename(columns={"station_id": "id"}, inplace=True)
                 flux_stations["variable"] = "flow"
                 flux_stations["unit"] = "m^3/s"
                 flux_stations["filename"] = str(self.flux_out)
