@@ -4,6 +4,7 @@ import cartopy.crs as ccrs
 import holoviews as hv
 
 hv.extension("bokeh")
+from dvue.catalog import DataReferenceReader, DataReference, DataCatalog
 from dvue.dataui import DataUI
 from dvue.tsdataui import TimeSeriesDataUIManager
 from dvue import utils
@@ -13,6 +14,56 @@ import param
 import panel as pn
 
 logger = logging.getLogger(__name__)
+
+
+class SchismDataReferenceReader(DataReferenceReader):
+    """Reads a single SCHISM time series from a study output file or the
+    observation datastore.
+
+    ``source == "datastore"`` rows are fetched via the observation datastore;
+    all other rows are fetched from the matching :class:`SchismStudy` output
+    files.  ``convert_units`` is checked on the owning manager at every
+    :meth:`load` call.  Caching is intentionally disabled on all
+    :class:`~dvue.catalog.DataReference` objects using this reader so that
+    toggling ``convert_units`` is always reflected immediately.
+
+    Parameters
+    ----------
+    study_dir_map : dict
+        Mapping of ``str(output_dir)`` → :class:`SchismStudy`.
+    obs_datastore : StationDatastore or None
+        Observation datastore for ``source == "datastore"`` entries.
+    manager : SchismOutputUIDataManager
+        Owning manager; provides the reactive ``convert_units`` flag.
+    """
+
+    def __init__(self, study_dir_map, obs_datastore, manager):
+        self._study_dir_map = study_dir_map
+        self._datastore = obs_datastore
+        self._manager = manager
+
+    def load(self, **attributes) -> pd.DataFrame:
+        source = attributes.get("source", "")
+        unit = attributes.get("unit", "")
+        if source == "datastore":
+            df = self._datastore.get_data(attributes)
+            if self._manager.convert_units:
+                df, unit = schismstudy.convert_to_SI(df, unit)
+        else:
+            base_dir = str(pathlib.Path(attributes["filename"]).parent)
+            study = self._study_dir_map[base_dir]
+            try:
+                df = study.get_data(attributes)
+            except KeyError as e:
+                logger.warning(str(e).strip("'\""))
+                raise
+        df = df[slice(df.first_valid_index(), df.last_valid_index())]
+        df.attrs["unit"] = unit
+        df.attrs["ptype"] = "INST-VAL"
+        return df
+
+    def __repr__(self) -> str:
+        return f"SchismDataReferenceReader(sources={list(self._study_dir_map.keys())!r})"
 
 
 class SchismOutputUIDataManager(TimeSeriesDataUIManager):
@@ -43,7 +94,16 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         self.color_cycle_column = "id"
         self.dashed_line_cycle_column = "source"
         self.marker_cycle_column = "variable"
-
+        # Build dvue catalog after param is fully initialized
+        self._schism_reader = SchismDataReferenceReader(
+            self.study_dir_map, self.datastore, self
+        )
+        geo_crs = (
+            str(self.catalog.crs)
+            if hasattr(self.catalog, "crs") and self.catalog.crs is not None
+            else None
+        )
+        self._dvue_catalog = self._build_dvue_catalog(geo_crs)
 
     def get_widgets(self):
         control_widgets = super().get_widgets()
@@ -72,6 +132,29 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
 
     def get_data_catalog(self):
         return self.catalog
+
+    @property
+    def data_catalog(self) -> DataCatalog:
+        return self._dvue_catalog
+
+    def _build_dvue_catalog(self, crs=None) -> DataCatalog:
+        catalog = DataCatalog(crs=crs)
+        for _, row in self.catalog.iterrows():
+            ref_name = f"{row['source']}::{row['id']}/{row['variable']}"
+            attrs = {k: v for k, v in row.items() if k != "geometry"}
+            attrs.pop("name", None)  # avoid clash with the explicit name= kwarg below
+            if "geometry" in row.index and row["geometry"] is not None:
+                attrs["geometry"] = row["geometry"]
+            try:
+                catalog.add(DataReference(
+                    self._schism_reader,
+                    name=ref_name,
+                    cache=False,  # convert_units is reactive; always re-run
+                    **attrs,
+                ))
+            except ValueError:
+                pass  # duplicate name; skip
+        return catalog
 
     def get_time_range(self, dfcat):
         return self.time_range
@@ -141,21 +224,11 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         return False
 
     def get_data_for_time_range(self, r, time_range):
-        unit = r["unit"]
-        if r["source"] == "datastore":
-            df = self.datastore.get_data(r)
-            if self.convert_units:
-                df, unit = schismstudy.convert_to_SI(df, r["unit"])
-        else:
-            base_dir = str(pathlib.Path(r["filename"]).parent)
-            study = self.study_dir_map[base_dir]
-            try:
-                df = study.get_data(r)
-            except KeyError as e:
-                logger.warning(str(e).strip('"\''))
-                raise
-        ptype = "INST-VAL"
-        df = df[slice(df.first_valid_index(), df.last_valid_index())]
+        ref_name = f"{r['source']}::{r['id']}/{r['variable']}"
+        ref = self._dvue_catalog.get(ref_name)
+        df = ref.getData(time_range=time_range)
+        unit = df.attrs.get("unit", r["unit"])
+        ptype = df.attrs.get("ptype", "INST-VAL")
         return df, unit, ptype
 
     # methods below if geolocation data is available

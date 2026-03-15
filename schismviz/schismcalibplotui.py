@@ -11,12 +11,31 @@ import holoviews as hv
 from holoviews import opts
 
 from schimpy import batch_metrics
+from dvue.catalog import DataReferenceReader, DataReference, DataCatalog
 from dvue.dataui import DataUI, DataUIManager
 from . import datastore, schismstudy
 from vtools.functions.filter import cosine_lanczos
 from dvue.utils import interpret_file_relative_to
 
 # from .calibplot import tsplot, scatterplot, calculate_metrics, regression_line_plots
+
+
+class SchismCalibNullReader(DataReferenceReader):
+    """Placeholder reader for SchismCalibPlotUIManager catalog entries.
+
+    All data retrieval happens inside
+    :meth:`SchismCalibPlotUIManager.create_panel` → ``plot_metrics()``; 
+    ``getData()`` is never called on these references.
+    """
+
+    def load(self, **attributes) -> pd.DataFrame:
+        raise NotImplementedError(
+            "SchismCalibPlotUIManager entries are rendered via create_panel(), not getData()."
+        )
+
+    def __repr__(self) -> str:
+        return "SchismCalibNullReader()"
+
 
 VAR_to_PARAM = {
     "flow": "flow",
@@ -222,6 +241,7 @@ class SchismCalibPlotUIManager(DataUIManager):
         self.dcat["full_id"] = (
             self.dcat["station_id"].astype(str) + "_" + self.dcat["subloc"].astype(str)
         )
+        self._dvue_catalog = self._build_dvue_catalog()
 
     def get_widgets(self):
         return pn.Column(pn.pane.Markdown("UI Controls Placeholder"))
@@ -250,6 +270,35 @@ class SchismCalibPlotUIManager(DataUIManager):
         if self.selected_stations:
             scat = scat[scat["id"].isin(self.selected_stations)].reset_index(drop=True)
         return scat
+
+    @property
+    def data_catalog(self) -> DataCatalog:
+        return self._dvue_catalog
+
+    def _build_dvue_catalog(self) -> DataCatalog:
+        _reader = SchismCalibNullReader()
+        dfcat = self.get_data_catalog()
+        geo_crs = (
+            str(dfcat.crs)
+            if isinstance(dfcat, gpd.GeoDataFrame) and dfcat.crs is not None
+            else None
+        )
+        catalog = DataCatalog(crs=geo_crs)
+        for _, row in dfcat.iterrows():
+            ref_name = f"{row['id']}_{row['variable']}"
+            attrs = {k: v for k, v in row.items() if k != "geometry"}
+            if "geometry" in row.index and row["geometry"] is not None:
+                attrs["geometry"] = row["geometry"]
+            try:
+                catalog.add(DataReference(
+                    _reader,
+                    name=ref_name,
+                    cache=False,
+                    **attrs,
+                ))
+            except ValueError:
+                pass  # duplicate id+variable; skip
+        return catalog
 
     def get_table_column_width_map(self):
         """only columns to be displayed in the table should be included in the map"""
@@ -386,7 +435,10 @@ class SchismCalibPlotUIManager(DataUIManager):
         )
         df = df.loc[ex_avg_time_window]
         df = df.resample(dfobs.index.freq).mean()
-        dff = cosine_lanczos(df.loc[ex_avg_time_window], "40H")
+        # Interpolate internal NaN gaps before filtering so the cosine-Lanczos
+        # kernel does not propagate NaN across gappy observations.
+        df_for_filter = df.loc[ex_avg_time_window].interpolate(method="time")
+        dff = cosine_lanczos(df_for_filter, "40H")
         df = df.loc[slice(*inst_time_window), :]
         dff = dff.loc[slice(*avg_time_window), :]
         #
