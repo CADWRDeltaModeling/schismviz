@@ -30,12 +30,13 @@ requirements:
   run:
     - python
     {% for dep in project['dependencies'] %}
+    {% if '://' not in dep %}
     - {{ dep.lower() }}
+    {% endif %}
     {% endfor %}
     # cadwr-dms channel packages (not on PyPI)
     - schimpy
-    - dvue
-    - vtools
+    - vtools3
     - dms-datastore
 
 test:
