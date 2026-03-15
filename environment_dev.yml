@@ -30,4 +30,5 @@ dependencies:
   - pandoc
   - pip:
     - sphinx_design
+    - git+https://github.com/CADWRDeltaModeling/dvue
 

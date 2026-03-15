@@ -49,6 +49,7 @@ dependencies = [
     "spatialpandas>=0.4",
     "Pillow>=8.0",
     "networkx>=2.6",
+    "dvue @ git+https://github.com/CADWRDeltaModeling/dvue",
 ]
 
 [project.optional-dependencies]

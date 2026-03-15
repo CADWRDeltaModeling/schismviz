@@ -25,3 +25,6 @@ dependencies:
   - scikit-learn
   - lxml
   - html5lib
+  - pip
+  - pip:
+    - git+https://github.com/CADWRDeltaModeling/dvue
