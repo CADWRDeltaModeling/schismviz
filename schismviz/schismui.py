@@ -57,6 +57,8 @@ class SchismDataReferenceReader(DataReferenceReader):
             except KeyError as e:
                 logger.warning(str(e).strip("'\""))
                 raise
+            if self._manager.convert_units:
+                df, unit = schismstudy.convert_to_SI(df, unit)
         df = df[slice(df.first_valid_index(), df.last_valid_index())]
         df.attrs["unit"] = unit
         df.attrs["ptype"] = "INST-VAL"
