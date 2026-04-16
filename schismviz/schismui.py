@@ -6,7 +6,7 @@ import holoviews as hv
 hv.extension("bokeh")
 from dvue.catalog import DataReferenceReader, DataReference, DataCatalog
 from dvue.dataui import DataUI
-from dvue.tsdataui import TimeSeriesDataUIManager
+from dvue.tsdataui import TimeSeriesDataUIManager, TimeSeriesPlotAction
 from dvue import utils
 from . import schismstudy, datastore
 import pathlib
@@ -64,6 +64,43 @@ class SchismDataReferenceReader(DataReferenceReader):
 
     def __repr__(self) -> str:
         return f"SchismDataReferenceReader(sources={list(self._study_dir_map.keys())!r})"
+
+
+class SchismTimeSeriesPlotAction(TimeSeriesPlotAction):
+    """TimeSeriesPlotAction with SCHISM-specific curve creation and titles."""
+
+    def create_curve(self, df, r, unit, file_index=None):
+        crvlabel = f'{r["source"]}::{r["id"]}/{r["variable"]}'
+        ylabel = f'{r["variable"]} ({unit})'
+        title = f'{r["variable"]} @ {r["id"]}'
+        crv = hv.Curve(df.iloc[:, [0]], label=crvlabel).redim(value=crvlabel)
+        return crv.opts(
+            xlabel="Time",
+            ylabel=ylabel,
+            title=title,
+            responsive=True,
+            active_tools=["wheel_zoom"],
+            tools=["hover"],
+        )
+
+    def _append_value(self, new_value, value):
+        if new_value not in value:
+            value += f'{", " if value else ""}{new_value}'
+        return value
+
+    def append_to_title_map(self, title_map, unit, r):
+        if unit in title_map:
+            value = title_map[unit]
+        else:
+            value = ["", "", ""]
+        value[0] = self._append_value(str(r["source"]), value[0])
+        value[2] = self._append_value(str(r["id"]), value[2])
+        value[1] = self._append_value(str(r["variable"]), value[1])
+        title_map[unit] = value
+
+    def create_title(self, v):
+        title = f"{v[1]} @ {v[2]} ({v[0]})"
+        return title
 
 
 class SchismOutputUIDataManager(TimeSeriesDataUIManager):
@@ -137,6 +174,13 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
     def data_catalog(self) -> DataCatalog:
         return self._dvue_catalog
 
+    def get_data_reference(self, row):
+        ref_name = f"{row['source']}::{row['id']}/{row['variable']}"
+        return self._dvue_catalog.get(ref_name)
+
+    def _make_plot_action(self):
+        return SchismTimeSeriesPlotAction()
+
     def _build_dvue_catalog(self, crs=None) -> DataCatalog:
         catalog = DataCatalog(crs=crs)
         for _, row in self.catalog.iterrows():
@@ -147,7 +191,7 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
                 attrs["geometry"] = row["geometry"]
             try:
                 catalog.add(DataReference(
-                    self._schism_reader,
+                    reader=self._schism_reader,
                     name=ref_name,
                     cache=False,  # convert_units is reactive; always re-run
                     **attrs,
@@ -186,39 +230,6 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
             "source": {"type": "input", "func": "like", "placeholder": "Enter match"},
         }
         return table_filters
-
-    def _append_value(self, new_value, value):
-        if new_value not in value:
-            value += f'{", " if value else ""}{new_value}'
-        return value
-
-    def append_to_title_map(self, title_map, unit, r):
-        if unit in title_map:
-            value = title_map[unit]
-        else:
-            value = ["", "", ""]
-        value[0] = self._append_value(str(r["source"]), value[0])
-        value[2] = self._append_value(str(r["id"]), value[2])
-        value[1] = self._append_value(str(r["variable"]), value[1])
-        title_map[unit] = value
-
-    def create_title(self, v):
-        title = f"{v[1]} @ {v[2]} ({v[0]})"
-        return title
-
-    def create_curve(self, df, r, unit, file_index=None):
-        crvlabel = f'{r["source"]}::{r["id"]}/{r["variable"]}'
-        ylabel = f'{r["variable"]} ({unit})'
-        title = f'{r["variable"]} @ {r["id"]}'
-        crv = hv.Curve(df.iloc[:, [0]], label=crvlabel).redim(value=crvlabel)
-        return crv.opts(
-            xlabel="Time",
-            ylabel=ylabel,
-            title=title,
-            responsive=True,
-            active_tools=["wheel_zoom"],
-            tools=["hover"],
-        )
 
     def is_irregular(self, r):
         return False
