@@ -287,6 +287,7 @@ class SchismCalibPlotUIManager(DataUIManager):
         for _, row in dfcat.iterrows():
             ref_name = f"{row['id']}_{row['variable']}"
             attrs = {k: v for k, v in row.items() if k != "geometry"}
+            attrs.pop("name", None)  # avoid clash with the explicit name= kwarg below
             if "geometry" in row.index and row["geometry"] is not None:
                 attrs["geometry"] = row["geometry"]
             try:
@@ -524,12 +525,13 @@ class SchismCalibPlotUIManager(DataUIManager):
             ("unit", "@unit"),
         ]
 
-    def get_map_color_category(self):
-        return "variable"
-
     def get_map_color_columns(self):
         """return the columns that can be used to color the map"""
         return ["variable", "unit"]
+
+    def get_name_to_marker(self):
+        """return a list/dict mapping marker shapes for map display"""
+        return ["circle", "triangle", "square", "diamond", "cross", "x", "star"]
 
     def get_map_marker_columns(self):
         """return the columns that can be used to color the map"""

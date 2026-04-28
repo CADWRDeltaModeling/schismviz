@@ -72,6 +72,22 @@ class SchismTimeSeriesPlotAction(TimeSeriesPlotAction):
     """TimeSeriesPlotAction with SCHISM-specific curve creation and titles."""
 
     def create_curve(self, df, r, unit, file_index=None):
+        # Math refs have ref_type='math' and lack meaningful source/id/variable.
+        # Use the catalog name as the curve label/title instead.
+        ref_type = r.get("ref_type", "raw") if hasattr(r, "get") else "raw"
+        if ref_type != "raw":
+            label = str(r["name"]) if "name" in r.index else "math_ref"
+            if file_index:
+                label = f"{label} [{file_index}]"
+            crv = hv.Curve(df.iloc[:, [0]], label=label).redim(value=label)
+            return crv.opts(
+                xlabel="Time",
+                ylabel=f"({unit})",
+                title=label,
+                responsive=True,
+                active_tools=["wheel_zoom"],
+                tools=["hover"],
+            )
         crvlabel = f'{r["source"]}::{r["id"]}/{r["variable"]}'
         ylabel = f'{r["variable"]} ({unit})'
         title = f'{r["variable"]} @ {r["id"]}'
@@ -90,15 +106,20 @@ class SchismTimeSeriesPlotAction(TimeSeriesPlotAction):
             value += f'{", " if value else ""}{new_value}'
         return value
 
-    def append_to_title_map(self, title_map, unit, r):
-        if unit in title_map:
-            value = title_map[unit]
+    def append_to_title_map(self, title_map, group_key, row):
+        # Math refs have ref_type='math' and lack meaningful source/id/variable.
+        ref_type = row.get("ref_type", "raw") if hasattr(row, "get") else "raw"
+        if ref_type != "raw":
+            title_map.setdefault(group_key, str(row.get("name", group_key)))
+            return
+        if group_key in title_map:
+            value = title_map[group_key]
         else:
             value = ["", "", ""]
-        value[0] = self._append_value(str(r["source"]), value[0])
-        value[2] = self._append_value(str(r["id"]), value[2])
-        value[1] = self._append_value(str(r["variable"]), value[1])
-        title_map[unit] = value
+        value[0] = self._append_value(str(row["source"]), value[0])
+        value[2] = self._append_value(str(row["id"]), value[2])
+        value[1] = self._append_value(str(row["variable"]), value[1])
+        title_map[group_key] = value
 
     def create_title(self, v):
         title = f"{v[1]} @ {v[2]} ({v[0]})"
@@ -129,7 +150,11 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
                 pd.Timestamp(stime),
                 pd.Timestamp(etime + pd.Timedelta(days=250)),
             )
-        super().__init__(filename_column="filename", **kwargs)
+        # Initialize _dvue_catalog to None BEFORE super().__init__() so that the
+        # data_catalog property returns None during base-class init (which triggers
+        # the correct get_data_catalog() path rather than crashing with AttributeError).
+        self._dvue_catalog = None
+        super().__init__(url_column="filename", **kwargs)
         self.color_cycle_column = "id"
         self.dashed_line_cycle_column = "source"
         self.marker_cycle_column = "variable"
@@ -170,6 +195,14 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         return gdf[["id", "name", "variable", "unit", "filename", "geometry"]]
 
     def get_data_catalog(self):
+        # When the live DataCatalog is available, always rebuild from it so that
+        # MathDataReference entries added by the Math Ref editor are immediately
+        # visible in the table.  _enrich_catalog_with_math_ref_hints fills the
+        # 'expression' column for raw refs so users can see their alias tokens.
+        if self._dvue_catalog is not None:
+            df = super().get_data_catalog()  # TimeSeriesDataUIManager live-rebuild path
+            return self._enrich_catalog_with_math_ref_hints(df)
+        # Fallback during construction before _dvue_catalog is built.
         return self.catalog
 
     @property
@@ -177,6 +210,12 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         return self._dvue_catalog
 
     def get_data_reference(self, row):
+        # In the live-catalog path get_data_catalog() returns to_dataframe().reset_index()
+        # where the 'name' column is always the catalog key for both raw and math refs.
+        # Guard against NaN 'name' (should not happen, but defensive).
+        if "name" in row.index and not pd.isna(row.get("name", None)):
+            return self._dvue_catalog.get(row["name"])
+        # Legacy fallback for the static self.catalog path (construction only).
         ref_name = f"{row['source']}::{row['id']}/{row['variable']}"
         return self._dvue_catalog.get(ref_name)
 
@@ -188,7 +227,10 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         for _, row in self.catalog.iterrows():
             ref_name = f"{row['source']}::{row['id']}/{row['variable']}"
             attrs = {k: v for k, v in row.items() if k != "geometry"}
-            attrs.pop("name", None)  # avoid clash with the explicit name= kwarg below
+            # Preserve human-readable station name as 'station_name' so it
+            # survives catalog.to_dataframe().reset_index() where 'name' becomes
+            # the catalog key (ref_name) rather than the station display name.
+            attrs["station_name"] = attrs.pop("name", "")
             if "geometry" in row.index and row["geometry"] is not None:
                 attrs["geometry"] = row["geometry"]
             try:
@@ -206,17 +248,20 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         return self.time_range
 
     def build_station_name(self, r):
+        # Math refs (ref_type='math') lack id/variable — fall back to catalog name.
+        ref_type = r.get("ref_type", "raw") if hasattr(r, "get") else "raw"
+        if ref_type != "raw":
+            return str(r["name"]) if "name" in r.index else "math_ref"
         name = r["id"] + ":" + r["variable"]
-        if "source" not in r:
+        if "source" not in r or pd.isna(r["source"]) or not r["source"]:
             return f"{name}"
-        else:
-            return f'{r["source"]}:{name}'
+        return f'{r["source"]}:{name}'
 
-    def _get_table_column_width_map(self):
+    def get_table_column_width_map(self):
         """only columns to be displayed in the table should be included in the map"""
         column_width_map = {
             "id": "10%",
-            "name": "15%",
+            "station_name": "15%",
             "variable": "15%",
             "unit": "15%",
             "source": "10%",
@@ -226,7 +271,7 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
     def get_table_filters(self):
         table_filters = {
             "id": {"type": "input", "func": "like", "placeholder": "Enter match"},
-            "name": {"type": "input", "func": "like", "placeholder": "Enter match"},
+            "station_name": {"type": "input", "func": "like", "placeholder": "Enter match"},
             "variable": {"type": "input", "func": "like", "placeholder": "Enter match"},
             "unit": {"type": "input", "func": "like", "placeholder": "Enter match"},
             "source": {"type": "input", "func": "like", "placeholder": "Enter match"},
@@ -248,14 +293,11 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
     def get_tooltips(self):
         return [
             ("id", "@id"),
-            ("name", "@name"),
+            ("name", "@station_name"),
             ("variable", "@variable"),
             ("unit", "@unit"),
             ("source", "@source"),
         ]
-
-    def get_map_color_category(self):
-        return "variable"
 
     def get_map_color_columns(self):
         """return the columns that can be used to color the map"""
