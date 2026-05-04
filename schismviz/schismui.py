@@ -129,6 +129,14 @@ class SchismTimeSeriesPlotAction(TimeSeriesPlotAction):
 class SchismOutputUIDataManager(TimeSeriesDataUIManager):
 
     convert_units = param.Boolean(default=True, doc="Convert units to SI")
+    identity_key_columns = param.List(
+        default=["id", "variable"],
+        doc="Columns that identify a unique station/variable pair; used for Transform and Source Compare naming.",
+    )
+    show_source_compare = param.Boolean(
+        default=True,
+        doc="Show the Source Compare action in the Add to Catalog menu.",
+    )
 
     def __init__(self, *studies, datastore=None, time_range=None, **kwargs):
         """
@@ -251,6 +259,17 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         # Math refs (ref_type='math') lack id/variable — fall back to catalog name.
         ref_type = r.get("ref_type", "raw") if hasattr(r, "get") else "raw"
         if ref_type != "raw":
+            # Source-compare refs carry compare_op + compare_source attributes;
+            # use them to build a human-readable label.
+            compare_op = r.get("compare_op", None) if hasattr(r, "get") else None
+            if compare_op is not None and not (isinstance(compare_op, float) and pd.isna(compare_op)):
+                compare_src = r.get("compare_source", "")
+                id_part = r.get("id", "") if "id" in r.index else ""
+                var_part = r.get("variable", "") if "variable" in r.index else ""
+                if id_part and var_part:
+                    return f"{compare_op}({compare_src}): {id_part} @ {var_part}"
+                elif id_part:
+                    return f"{compare_op}({compare_src}): {id_part}"
             return str(r["name"]) if "name" in r.index else "math_ref"
         name = r["id"] + ":" + r["variable"]
         if "source" not in r or pd.isna(r["source"]) or not r["source"]:

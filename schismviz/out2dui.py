@@ -123,6 +123,14 @@ class SchismOut2DUIManager(TimeSeriesDataUIManager):
     """
 
     study_name = param.String(default="out2d", doc="Label for this study")
+    identity_key_columns = param.List(
+        default=["variable", "node_name"],
+        doc="Columns that identify a unique variable/node pair; used for Transform and Source Compare naming.",
+    )
+    show_source_compare = param.Boolean(
+        default=True,
+        doc="Show the Source Compare action in the Add to Catalog menu.",
+    )
 
     def __init__(
         self,
