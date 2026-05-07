@@ -123,10 +123,6 @@ class SchismOut2DUIManager(TimeSeriesDataUIManager):
     """
 
     study_name = param.String(default="out2d", doc="Label for this study")
-    identity_key_columns = param.List(
-        default=["variable", "node_name"],
-        doc="Columns that identify a unique variable/node pair; used for Transform and Source Compare naming.",
-    )
     show_source_compare = param.Boolean(
         default=True,
         doc="Show the Source Compare action in the Add to Catalog menu.",
@@ -155,7 +151,7 @@ class SchismOut2DUIManager(TimeSeriesDataUIManager):
         # calls get_data_catalog() and get_time_range() during setup.
         self._dfcat = self._build_catalog()
 
-        super().__init__(url_column="filename", **kwargs)
+        super().__init__(**kwargs)
 
         # Set visual styling param defaults *after* super().__init__()
         self.study_name = study_name

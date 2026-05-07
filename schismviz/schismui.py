@@ -129,10 +129,6 @@ class SchismTimeSeriesPlotAction(TimeSeriesPlotAction):
 class SchismOutputUIDataManager(TimeSeriesDataUIManager):
 
     convert_units = param.Boolean(default=True, doc="Convert units to SI")
-    identity_key_columns = param.List(
-        default=["id", "variable"],
-        doc="Columns that identify a unique station/variable pair; used for Transform and Source Compare naming.",
-    )
     show_source_compare = param.Boolean(
         default=True,
         doc="Show the Source Compare action in the Add to Catalog menu.",
@@ -162,7 +158,7 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         # data_catalog property returns None during base-class init (which triggers
         # the correct get_data_catalog() path rather than crashing with AttributeError).
         self._dvue_catalog = None
-        super().__init__(url_column="filename", **kwargs)
+        super().__init__(**kwargs)
         self.color_cycle_column = "id"
         self.dashed_line_cycle_column = "source"
         self.marker_cycle_column = "variable"
@@ -231,7 +227,7 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         return SchismTimeSeriesPlotAction()
 
     def _build_dvue_catalog(self, crs=None) -> DataCatalog:
-        catalog = DataCatalog(crs=crs)
+        catalog = DataCatalog(primary_key=["source_num", "id", "variable"], crs=crs)
         for _, row in self.catalog.iterrows():
             ref_name = f"{row['source']}::{row['id']}/{row['variable']}"
             attrs = {k: v for k, v in row.items() if k != "geometry"}

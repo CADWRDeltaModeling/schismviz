@@ -67,10 +67,29 @@ All `viz` sub-commands support YAML config with CLI overrides:
 
 ## Pitfalls
 
-- When extending with mixed catalogs (raw + math references), guard against NaN in filename columns — see `dvue/AGENTS.md` for the safe pattern.
+- When extending with mixed catalogs (raw + math references), guard against NaN in the
+  **`source` column** (not `filename`) — see `dvue/AGENTS.md` for the safe pattern.
+  `SchismDataUIManager.get_data_reference()` already does this correctly.
 - HoloViews has issues with dots in dataset dimension names; see workaround in [calibplot.py](schismviz/calibplot.py).
 - `schout_reader.py` is pre-xarray; avoid extending it — use xarray-based paths instead.
 - Spatial operations assume UTM Zone 10 N (EPSG:32610); do not add CRS auto-detection without testing.
+
+## SchismDataUIManager — Catalog Pattern
+
+`SchismDataUIManager` uses **dvue Pattern A** (live `DataCatalog`) with:
+
+```python
+catalog = DataCatalog(primary_key=["source_num", "id", "variable"], crs=crs)
+```
+
+- Multi-source by design — each SCHISM study output directory is a separate `source`.
+- The observation datastore uses `source="datastore"`.
+- `source_num` is auto-assigned in the order studies are passed to the constructor.
+- Refs are added with an **explicit `name`** (`f"{source}::{id}/{variable}"`) to preserve
+  human-readable study-path identity; auto-derivation is skipped when `name` is set.
+- `_build_dvue_catalog()` is called after `super().__init__()` once the reader is ready.
+- Do **not** pass `url_column`, `url_num_column`, or `identity_key_columns` to `super().__init__()` —
+  these parameters no longer exist in dvue.
 
 ## Docs & References
 
