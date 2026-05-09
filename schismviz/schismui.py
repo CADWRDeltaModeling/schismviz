@@ -174,9 +174,9 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         self._dvue_catalog = self._build_dvue_catalog(geo_crs)
 
     def get_widgets(self):
-        control_widgets = super().get_widgets()
-        control_widgets.append(pn.Param(self.param.convert_units))
-        return control_widgets
+        widget_tabs = super().get_widgets()
+        widget_tabs["Plot"].append(pn.Param(self.param.convert_units))
+        return widget_tabs
 
     def _merge_catalogs(self, studies, datastore):
         """
