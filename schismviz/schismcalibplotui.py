@@ -1,3 +1,4 @@
+import logging
 import pathlib
 import yaml
 import numpy as np
@@ -18,6 +19,8 @@ from vtools.functions.filter import cosine_lanczos
 from dvue.utils import interpret_file_relative_to
 
 # from .calibplot import tsplot, scatterplot, calculate_metrics, regression_line_plots
+
+logger = logging.getLogger(__name__)
 
 
 class SchismCalibNullReader(DataReferenceReader):
@@ -367,7 +370,7 @@ class SchismCalibPlotUIManager(DataUIManager):
                 self.dcat.eval(f'({id_col}=="{id}") & (param=="{dparam}")')
             ].iloc[0]
         except IndexError:
-            print("No data found for", id, variable)
+            logger.debug("No data found for %s %s", id, variable)
             rd = None
         if rd is not None:
             dfobs, converted_unit = schismstudy.convert_to_SI(

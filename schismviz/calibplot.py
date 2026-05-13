@@ -17,6 +17,8 @@ import datetime
 import sys
 import logging
 
+logger = logging.getLogger(__name__)
+
 ## - Generic Plotting Functions ##
 import numpy as np
 import copy
@@ -42,8 +44,7 @@ def parse_time_window(timewindow):
             "error in calibplot.parse_time_window, while parsing timewindow. Timewindow must be in format yyyy-mm-dd:yyyy-mm-dd or "
             + "yyyy-mm-dd hhmm:yyyy-mm-dd hhmm. Ignoring timewindow"
         )
-        print(errmsg)
-        logging.error(errmsg)
+        logger.warning(errmsg)
     return return_list
 
 
@@ -72,8 +73,7 @@ def tsplot(dflist, names, timewindow=None, zoom_inst_plot=False):
             end_dt = parts[1]
         except:
             errmsg = "error in calibplot.tsplot"
-            print(errmsg)
-            logging.error(errmsg)
+            logger.warning(errmsg)
 
     from bokeh.models import DatetimeTickFormatter
 
@@ -296,13 +296,11 @@ def calculate_metrics(dflist, names, index_x=0, location=None):
                 metrics_calculated = True
             else:
                 errmsg = "calibplot.calculate_metrics: no y_series data found. Metrics can not be calculated.\n"
-                print(errmsg)
-                logging.info(errmsg)
+                logger.debug(errmsg)
 
     else:
         errmsg = "calibplot.calculate_metrics: no x_series data found. Metrics can not be calculated.\n"
-        print(errmsg)
-        logging.info(errmsg)
+        logger.debug(errmsg)
     dfmetrics = None
 
     if metrics_calculated:
@@ -654,7 +652,7 @@ def create_layout(
         10: "(j)",
     }
     if scatter_plot is None and dfdisplayed_metrics is None and metrics_table is None:
-        print(
+        logger.debug(
             "build_calib_plot_template: cplot, dfdisplayedmetrics, metrics_table, and kdeplot are all None for location, vartype="
             + location.name
             + ","
@@ -804,18 +802,17 @@ def load_data_for_plotting(studies, location, vartype, timewindow):
         if not success:  # try processing it now
             p.process()
             success = p.store_processed()
-            print('about to load data for '+str(p))
+            logger.debug('about to load data for '+str(p))
             success = p.load_processed(
                 timewindow=timewindow, invert_series=invert_series
             )
-            print('success='+str(success))
+            logger.debug('success='+str(success))
         if not success:
             errmsg = "unable to load data for study|location %s|%s" % (
                 str(study),
                 str(location),
             )
-            print(errmsg)
-            logging.info(errmsg)
+            logger.warning(errmsg)
             all_data_found = False
     if not all_data_found:
         errmsg = (
@@ -827,14 +824,7 @@ def load_data_for_plotting(studies, location, vartype, timewindow):
             + str(timewindow)
             + "\n"
         )
-        print(
-            "==============================================================================="
-        )
-        print(errmsg)
-        print(
-            "==============================================================================="
-        )
-        logging.info(errmsg)
+        logger.warning(errmsg)
         return None, None
     return all_data_found, pp
 
@@ -1123,7 +1113,7 @@ def create_hv_metrics_table(
 
     for m in metrics_list:
         if m not in metrics_list_dict:
-            print(
+            logger.error(
                 f"error in calibplot.create_hv_metrics_table: {m} was not a valid metric specification. exiting."
             )
             exit(0)
@@ -1255,14 +1245,14 @@ def create_metrics_table_and_metrics_df(
                 for m in metrics_table_list:
                     if m not in col_rename_dict:
                         metrics_list_ok = False
-                        print("unrecognized: " + m)
+                        logger.warning("unrecognized: " + m)
                 if metrics_list_ok:
                     metrics_list_for_hv_table = metrics_table_list
                     for m in metrics_table_list:
                         if m not in df_displayed_metrics_cols:
                             df_displayed_metrics_cols.append(m)
                 else:
-                    print(
+                    logger.warning(
                         "WARNING: metrics_table_list specified, but 1 or more values is not acceptable"
                     )
 
@@ -1339,14 +1329,14 @@ def create_metrics_table_and_metrics_df(
                 for m in metrics_table_list:
                     if m not in col_rename_dict:
                         metrics_list_ok = False
-                        print("unrecognized: " + m)
+                        logger.warning("unrecognized: " + m)
                 if metrics_list_ok:
                     metrics_list_for_hv_table = metrics_table_list
                     for m in metrics_table_list:
                         if m not in df_displayed_metrics_cols:
                             df_displayed_metrics_cols.append(m)
                 else:
-                    print(
+                    logger.warning(
                         "WARNING: metrics_table_list specified, but 1 or more values is not acceptable"
                     )
 
@@ -1441,7 +1431,7 @@ def create_metrics_table_and_metrics_df(
                 study_list, metrics_list_dict_renamed, metrics_list_for_hv_table_renamed
             )
     else:
-        print(
+        logger.debug(
             "build_metrics_table: dfmetrics is none, so not creating metrics table for location.name, vartype: "
             + location.name
             + ","

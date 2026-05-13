@@ -178,7 +178,7 @@ class SchismStudy(param.Parameterized):
             self.flux_pts_gdf = convert_flux_to_points_gdf(flux_df)
             self.flux_names = flux_df["name"].tolist()
         else:
-            print(
+            logger.debug(
                 "flux xsect file is not a yaml file, so only names loaded with no geometry.\n"
                 + "Filling in with matching stations.in geometry where station_id matches.\n"
             )
@@ -222,7 +222,7 @@ class SchismStudy(param.Parameterized):
                 s = self.stations_gdf.copy()
                 s["variable"] = var
                 s["unit"] = self.get_unit_for_variable(var)
-                print(station.staout_name(var))
+                logger.debug(station.staout_name(var))
                 s["filename"] = self.interpret_file_relative_to(
                     self.output_dir, station.staout_name(var)
                 )

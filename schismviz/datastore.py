@@ -1,4 +1,5 @@
 from functools import lru_cache
+import logging
 import param
 import os
 import diskcache
@@ -6,6 +7,8 @@ from dms_datastore.read_ts import read_ts
 from pathlib import Path
 import pandas as pd
 import geopandas as gpd
+
+logger = logging.getLogger(__name__)
 
 
 def convert_station_to_gdf(stations):
@@ -39,7 +42,7 @@ class StationDatastore(param.Parameterized):
         self.cache = diskcache.Cache(self.cache_dir, size_limit=1e11)
         self.caching_read_ts = lru_cache(maxsize=32)(self.cache.memoize()(read_ts))
         # read inventory file for each repo level
-        print("Using inventory file: ", self.inventory_file)
+        logger.debug("Using inventory file: %s", self.inventory_file)
         self.df_dataset_inventory = pd.read_csv(self.inventory_file, comment="#")
         # replace nan with empty string for column subloc
         self.df_dataset_inventory["subloc"] = self.df_dataset_inventory[
@@ -104,4 +107,4 @@ class StationDatastore(param.Parameterized):
     def clear_cache(self):
         if self.caching:
             self.cache.clear()
-            print("Cache cleared")
+            logger.debug("Cache cleared")
