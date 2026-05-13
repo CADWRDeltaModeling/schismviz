@@ -325,6 +325,7 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
 
 import click
 import yaml
+from schismviz.session import serve_session_app
 
 
 @click.command()
@@ -348,6 +349,7 @@ import yaml
 @click.option("--flux_out", default="flux.out", help="Path to the flux.out file")
 @click.option("--reftime", default=None, help="Reference time")
 @click.option("--yaml-file", default=None, help="Path to the yaml file")
+@click.option("--port", default=5006, help="Port to serve the UI on")
 def show_schism_output_ui(
     schism_dir=".",
     flux_xsect_file="flow_station_xsects.yaml",
@@ -357,6 +359,7 @@ def show_schism_output_ui(
     repo_dir="screened",
     inventory_file="inventory_datasets.csv",
     yaml_file=None,
+    port=5006,
 ):
     """
     Shows Data UI for SCHISM output files.
@@ -442,13 +445,12 @@ def show_schism_output_ui(
     else:
         logger.info("No datastore inventory file found (%s); running without observation datastore.", inventory_file)
 
-    # Create the UI
-    ui = DataUI(
-        SchismOutputUIDataManager(
+    # Launch the session-aware UI
+    def build_manager():
+        return SchismOutputUIDataManager(
             *studies,
             datastore=ds,
             time_range=time_range,
-        ),
-        crs=ccrs.UTM(10),
-    )
-    ui.create_view(title="Schism Output UI").show()
+        )
+
+    serve_session_app(build_manager, title="Schism Output UI", crs=ccrs.UTM(10), port=port)

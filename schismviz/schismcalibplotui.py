@@ -546,6 +546,7 @@ class SchismCalibPlotUIManager(DataUIManager):
 
 
 import click
+from schismviz.session import serve_session_app
 
 
 @click.command()
@@ -573,7 +574,8 @@ import click
     default=False,
     help="Validate config and print resolved settings without launching the UI",
 )
-def schism_calib_plot_ui(config_file, base_dir=None, dry_run=False, **kwargs):
+@click.option("--port", default=5006, help="Port to serve the UI on")
+def schism_calib_plot_ui(config_file, base_dir=None, dry_run=False, port=5006, **kwargs):
     """
     config_file: str
         yaml file containing configuration
@@ -599,6 +601,8 @@ def schism_calib_plot_ui(config_file, base_dir=None, dry_run=False, **kwargs):
         click.echo("Configuration validated successfully.")
         click.echo(yaml.safe_dump(_serialize_for_yaml(manager.config), sort_keys=False))
         return
-    DataUI(manager, crs=ccrs.UTM(10)).create_view(
-        title="Schism Calibration Plot UI"
-    ).show()
+
+    def build_manager():
+        return SchismCalibPlotUIManager(config_file, base_dir=base_dir, **kwargs)
+
+    serve_session_app(build_manager, title="Schism Calibration Plot UI", crs=ccrs.UTM(10), port=port)

@@ -352,6 +352,7 @@ class SchismOut2DUIManager(TimeSeriesDataUIManager):
 
 import click
 import yaml as _yaml
+from schismviz.session import serve_session_app
 
 
 def _load_yaml_section(config_file, section):
@@ -486,16 +487,15 @@ def show_out2d_ui(
         variables_arg = [v.strip() for v in str(variables_str).split(",") if v.strip()]
 
     # ---- build manager and launch UI ---------------------------------------
-    mgr = SchismOut2DUIManager(
-        *files,
-        nodes=nodes_arg,
-        variables=variables_arg,
-        study_name=cfg.get("title", "SCHISM out2d"),
-    )
-
     dashboard_title = cfg.get("title", "SCHISM out2d")
     server_port = int(cfg.get("port", 5006))
 
-    DataUI(mgr).create_view(title=dashboard_title).show(
-        port=server_port, open=show
-    )
+    def build_manager():
+        return SchismOut2DUIManager(
+            *files,
+            nodes=nodes_arg,
+            variables=variables_arg,
+            study_name=cfg.get("title", "SCHISM out2d"),
+        )
+
+    serve_session_app(build_manager, title=dashboard_title, port=server_port, open=show)
