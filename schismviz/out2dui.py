@@ -405,7 +405,7 @@ def _merge(cfg, **cli_overrides):
 @click.option("--title", default=None, help="Dashboard title shown in the browser.")
 @click.option(
     "--port", default=None, type=int,
-    help="Port for the Panel server (default: 5006).",
+    help="Port for the Panel server (0 or unset = random available port).",
 )
 @click.option(
     "--show/--no-show", default=True,
@@ -439,7 +439,7 @@ def show_out2d_ui(
         nodes_csv: nodes.csv
         variables: "elevation,depthAverageVelX"
         title: "SCHISM out2d"
-        port: 5006
+        port: 0
     """
     import glob as _glob
     import pandas as pd
@@ -488,7 +488,7 @@ def show_out2d_ui(
 
     # ---- build manager and launch UI ---------------------------------------
     dashboard_title = cfg.get("title", "SCHISM out2d")
-    server_port = int(cfg.get("port", 5006))
+    server_port = int(cfg.get("port", 0) or 0)
 
     def build_manager():
         return SchismOut2DUIManager(

@@ -22,10 +22,10 @@ class SchismDataReferenceReader(DataReferenceReader):
 
     ``source == "datastore"`` rows are fetched via the observation datastore;
     all other rows are fetched from the matching :class:`SchismStudy` output
-    files.  ``convert_units`` is checked on the owning manager at every
-    :meth:`load` call.  Caching is intentionally disabled on all
-    :class:`~dvue.catalog.DataReference` objects using this reader so that
-    toggling ``convert_units`` is always reflected immediately.
+    files.  This reader always returns **raw** data (no unit conversion);
+    unit conversion is applied by :meth:`SchismOutputUIDataManager.get_data`
+    so that caching of the raw series remains valid across ``convert_units``
+    toggle events.
 
     Parameters
     ----------
@@ -34,7 +34,7 @@ class SchismDataReferenceReader(DataReferenceReader):
     obs_datastore : StationDatastore or None
         Observation datastore for ``source == "datastore"`` entries.
     manager : SchismOutputUIDataManager
-        Owning manager; provides the reactive ``convert_units`` flag.
+        Owning manager (kept for compatibility; no longer used here).
     """
 
     def __init__(self, study_dir_map, obs_datastore, manager):
@@ -47,8 +47,6 @@ class SchismDataReferenceReader(DataReferenceReader):
         unit = attributes.get("unit", "")
         if source == "datastore":
             df = self._datastore.get_data(attributes)
-            if self._manager.convert_units:
-                df, unit = schismstudy.convert_to_SI(df, unit)
         else:
             base_dir = str(pathlib.Path(attributes["filename"]).parent)
             study = self._study_dir_map[base_dir]
@@ -57,8 +55,6 @@ class SchismDataReferenceReader(DataReferenceReader):
             except KeyError as e:
                 logger.warning(str(e).strip("'\""))
                 raise
-            if self._manager.convert_units:
-                df, unit = schismstudy.convert_to_SI(df, unit)
         df = df[slice(df.first_valid_index(), df.last_valid_index())]
         df.attrs["unit"] = unit
         df.attrs["ptype"] = "INST-VAL"
@@ -241,12 +237,26 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
                 catalog.add(DataReference(
                     reader=self._schism_reader,
                     name=ref_name,
-                    cache=False,  # convert_units is reactive; always re-run
                     **attrs,
                 ))
             except ValueError:
                 pass  # duplicate name; skip
         return catalog
+
+    def get_data(self, df):
+        """Yield data frames for each selected row, applying unit conversion.
+
+        Raw data is cached by :class:`~dvue.catalog.DataReference`; unit
+        conversion is applied here (post-cache) so that toggling
+        ``convert_units`` is reflected immediately without invalidating the
+        cache.
+        """
+        for data in super().get_data(df):
+            if self.convert_units:
+                unit = data.attrs.get("unit", "")
+                data, unit = schismstudy.convert_to_SI(data, unit)
+                data.attrs["unit"] = unit
+            yield data
 
     def get_time_range(self, dfcat):
         return self.time_range
@@ -349,7 +359,7 @@ from schismviz.session import serve_session_app
 @click.option("--flux_out", default="flux.out", help="Path to the flux.out file")
 @click.option("--reftime", default=None, help="Reference time")
 @click.option("--yaml-file", default=None, help="Path to the yaml file")
-@click.option("--port", default=5006, help="Port to serve the UI on")
+@click.option("--port", default=0, help="Port to serve the UI on (0 = random available port).")
 def show_schism_output_ui(
     schism_dir=".",
     flux_xsect_file="flow_station_xsects.yaml",
@@ -359,7 +369,7 @@ def show_schism_output_ui(
     repo_dir="screened",
     inventory_file="inventory_datasets.csv",
     yaml_file=None,
-    port=5006,
+    port=0,
 ):
     """
     Shows Data UI for SCHISM output files.

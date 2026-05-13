@@ -577,8 +577,8 @@ from schismviz.session import serve_session_app
     default=False,
     help="Validate config and print resolved settings without launching the UI",
 )
-@click.option("--port", default=5006, help="Port to serve the UI on")
-def schism_calib_plot_ui(config_file, base_dir=None, dry_run=False, port=5006, **kwargs):
+@click.option("--port", default=0, help="Port to serve the UI on (0 = random available port).")
+def schism_calib_plot_ui(config_file, base_dir=None, dry_run=False, port=0, **kwargs):
     """
     config_file: str
         yaml file containing configuration
