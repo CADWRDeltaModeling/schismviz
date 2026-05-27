@@ -219,13 +219,14 @@ class SchismStudy(param.Parameterized):
         else:
             var_stations = []
             for var in STATION_VARS:
+                staout_path = self.output_dir / station.staout_name(var)
+                if not staout_path.exists():
+                    logger.debug("Skipping variable %s: %s not found in outputs", var, staout_path)
+                    continue
                 s = self.stations_gdf.copy()
                 s["variable"] = var
                 s["unit"] = self.get_unit_for_variable(var)
-                logger.debug(station.staout_name(var))
-                s["filename"] = self.interpret_file_relative_to(
-                    self.output_dir, station.staout_name(var)
-                )
+                s["filename"] = str(staout_path)
                 s.drop(columns=["id", "subloc", "x", "y", "z"], inplace=True)
                 s.rename(columns={"station_id": "id"}, inplace=True)
                 var_stations.append(s)

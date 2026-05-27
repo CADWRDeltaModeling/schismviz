@@ -1,11 +1,13 @@
 """schismviz.session — Session persistence for schismviz CLI apps.
 
-Thin re-export shim over :mod:`dvue.session_persistence`.  All logic lives
-in dvue so that other dvue-based apps can reuse it.
+Built on :class:`dvue.session_persistence.SessionManager` (Layer 1 in-memory
+registry + optional Layer 2 diskcache) and the
+:attr:`~dvue.dataui.DataUIManager.show_reset_session_button` param introduced
+in :mod:`dvue.dataui`.
 
-The diskcache default for schismviz is ``~/.schismviz_sessions`` (rather
-than dvue's generic ``~/.dvue_sessions``) so sessions from different dvue
-apps on the same machine are kept separate.  The cookie name is
+The diskcache default for schismviz is ``~/.schismviz_sessions`` (rather than
+dvue's generic ``~/.dvue_sessions``) so sessions from different dvue apps on
+the same machine are kept separate.  The cookie name is
 ``"schismviz_user_id"`` to avoid collisions when multiple dvue apps are
 served on the same origin.
 """
@@ -14,17 +16,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from dvue.session_persistence import (
-    install_session_handler,
-    snapshot,
-    restore,
-)
-from dvue.session_persistence import serve_session_app as _serve_session_app
+import panel as pn
 
-__all__ = ["install_session_handler", "snapshot", "restore", "serve_session_app"]
+from dvue.session_persistence import install_session_handler, SessionManager
+from dvue.dataui import DataUI
 
-_DEFAULT_CACHE_DIR = Path.home() / ".schismviz_sessions"
-_DEFAULT_COOKIE_NAME = "schismviz_user_id"
+__all__ = ["serve_session_app", "COOKIE_NAME"]
+
+COOKIE_NAME: str = "schismviz_user_id"
+_DEFAULT_CACHE_DIR: Path = Path.home() / ".schismviz_sessions"
 
 
 def serve_session_app(
@@ -38,9 +38,11 @@ def serve_session_app(
 ) -> None:
     """Launch a session-aware Panel app for a schismviz manager.
 
-    Delegates to :func:`dvue.session_persistence.serve_session_app` with
-    ``cache_dir`` defaulting to ``~/.schismviz_sessions`` and
-    ``cookie_name`` defaulting to ``"schismviz_user_id"``.
+    Uses :class:`~dvue.session_persistence.SessionManager` for the two-layer
+    persistence contract and sets
+    :attr:`~dvue.dataui.DataUIManager.show_reset_session_button` on every
+    freshly built manager so that :meth:`~dvue.dataui.DataUI.create_view`
+    automatically inserts a **Reset Session** button in the action bar.
 
     Parameters
     ----------
@@ -59,13 +61,49 @@ def serve_session_app(
     **pn_serve_kwargs:
         Forwarded to ``pn.serve()``.
     """
-    _serve_session_app(
-        build_manager_fn,
-        title=title,
+    install_session_handler(cookie_name=COOKIE_NAME)
+
+    session_mgr = SessionManager(
+        cookie_name=COOKIE_NAME,
+        cache_dir=cache_dir or _DEFAULT_CACHE_DIR,
+    )
+
+    app_key = title.lower().replace(" ", "-")
+
+    def make_app():
+        user_id = session_mgr.current_user_id
+        reg_key = session_mgr.make_reg_key(user_id, app_key)
+        entry = session_mgr.get_entry(reg_key)
+
+        if entry:
+            # Registry hit: reuse existing objects; re-register per-Document hooks.
+            ui, tmpl = entry["ui"], entry["template"]
+            pn.state.onload(lambda: (ui.setup_location_sync(), ui.setup_url_sync()))
+            tmpl.servable()
+            return
+
+        # Registry miss: build a fresh manager and UI.
+        mgr = build_manager_fn()
+        mgr.show_reset_session_button = True
+        mgr.session_cookie_name = COOKIE_NAME
+
+        dataui_kwargs: dict = {}
+        if crs is not None:
+            dataui_kwargs["crs"] = crs
+        if station_id_column is not None:
+            dataui_kwargs["station_id_column"] = station_id_column
+
+        ui = DataUI(mgr, **dataui_kwargs)
+        tmpl = ui.create_view(title=title)
+        tmpl.servable()
+
+        if reg_key:
+            session_mgr.set_entry(reg_key, {"mgr": mgr, "ui": ui, "template": tmpl})
+
+    pn.serve(
+        {app_key: make_app},
         port=port,
-        crs=crs,
-        station_id_column=station_id_column,
-        cookie_name=_DEFAULT_COOKIE_NAME,
-        cache_dir=cache_dir if cache_dir is not None else _DEFAULT_CACHE_DIR,
+        show=True,
+        unused_session_lifetime_milliseconds=2_592_000_000,
         **pn_serve_kwargs,
     )

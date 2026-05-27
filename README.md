@@ -14,6 +14,65 @@ schismviz --help
 schismviz output --yaml-file examples/schism_slr_studies.yaml
 ```
 
+## Combine UI — dvue plugin integration
+
+`schismviz` can load SCHISM output data into
+[dvue](https://github.com/CADWRDeltaModeling/dvue)'s generic combine UI.
+This lets you mix SCHISM study output with other registered data sources
+(DSM2, CSV, etc.) in one session.
+
+### `schismviz combine`
+
+Launch the SCHISM-specific combine UI directly:
+
+```bash
+# One study directory per param.nml
+schismviz combine study1/param.nml study2/param.nml
+
+# Or use the same multi-study YAML config used by `schismviz output`
+schismviz combine examples/schism_slr_studies.yaml
+
+# Mixed: YAML config + additional study
+schismviz combine examples/schism_slr_studies.yaml extra_study/param.nml
+```
+
+`time_range` is automatically inferred from the scanned studies' run
+start/end times, so no extra configuration is needed.
+
+### `dvue ui --plugin schismviz.readers`
+
+Use dvue's generic combine UI when mixing SCHISM data with other source
+types registered with `dvue`'s
+[ReaderRegistry](https://github.com/CADWRDeltaModeling/dvue):
+
+```bash
+dvue ui --plugin schismviz.readers study1/param.nml study2/param.nml
+
+# Combine SCHISM + DSM2 outputs in one UI
+dvue ui --plugin schismviz.readers --plugin dsm2ui.dssui.dss_registry \
+    study1/param.nml run_hydro.dss
+```
+
+Supported file types registered by `schismviz.readers`:
+
+| Extension | Input | Notes |
+|-----------|-------|-------|
+| `.nml` | `param.nml` in a SCHISM study directory | Study name inferred from parent directory name; all default file names assumed (`station.in`, `outputs/`, etc.) |
+| `.nml.clinic` | `param.nml.clinic` — baroclinic param file | Same handling as `.nml`; study name inferred from parent directory |
+| `.nml.barotropic` | `param.nml.barotropic` — barotropic param file | Same handling as `.nml` |
+| `.nml.tropic` | `param.nml.tropic` — tropic param file | Same handling as `.nml` |
+| `.yaml` / `.yml` | Multi-study YAML config with `schism_studies` key | Same format as `schismviz output --yaml-file`; silently ignored if no `schism_studies` key |
+
+### Python API
+
+```python
+from schismviz.readers import SchismRegistryUIManager
+
+manager = SchismRegistryUIManager()
+manager.add_source_files("study1/param.nml", "study2/param.nml")
+# manager.time_range is automatically set from the studies
+```
+
 
 # Live examples
  0. [Mesh View 3D](https://schism.azurewebsites.net/00_mesh_view_3D)

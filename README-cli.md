@@ -22,8 +22,9 @@ Options:
   -h, --help     Show this message and exit.
 
 Commands:
-  calib   config_file: str yaml file containing configuration
-  output  Shows Data UI for SCHISM output files.
+  calib    config_file: str yaml file containing configuration
+  combine  Launch the SCHISM combine UI backed by dvue's RegistryUIManager.
+  output   Shows Data UI for SCHISM output files.
 ```
 
 ## `schismviz output`
@@ -96,6 +97,63 @@ datastore:
 
 - `base_dir` entries are interpreted relative to the YAML file location when they are relative paths.
 - When `--yaml-file` is provided, it is used to create multiple studies for comparison in the output UI.
+
+## `schismviz combine`
+
+Launch the SCHISM combine UI using dvue's `RegistryUIManager`.  Supports
+`param.nml` files (one per study) and multi-study YAML config files
+interchangeably.  `time_range` is inferred automatically from the scanned
+studies.
+
+```text
+Usage: schismviz combine [OPTIONS] [FILES]...
+
+  Launch the SCHISM combine UI backed by dvue's RegistryUIManager.
+
+  FILES can be param.nml files (one per study directory) or a YAML config
+  file with a schism_studies key.  Multiple sources of either kind may be
+  mixed on the same command line.
+
+Options:
+  --port INTEGER  Port to serve the UI on (0 = random available port).
+  -h, --help      Show this message and exit.
+```
+
+**Supported file types:**
+
+| Extension | Input | Notes |
+|-----------|-------|-------|
+| `.nml` | `param.nml` in a SCHISM study directory | Study name inferred from parent directory name |
+| `.nml.clinic` | `param.nml.clinic` — baroclinic param file | Same handling as `.nml` |
+| `.nml.barotropic` | `param.nml.barotropic` — barotropic param file | Same handling as `.nml` |
+| `.nml.tropic` | `param.nml.tropic` — tropic param file | Same handling as `.nml` |
+| `.yaml` / `.yml` | Multi-study YAML with `schism_studies` key | Silently ignored if key is absent |
+
+### Typical usage
+
+```bash
+# Two study directories side-by-side
+schismviz combine study1/param.nml study2/param.nml
+
+# Compound NML variants (clinic / barotropic / tropic)
+schismviz combine study1/param.nml.clinic study2/param.nml.barotropic
+
+# Multi-study YAML (same format as schismviz output --yaml-file)
+schismviz combine examples/schism_slr_studies.yaml
+
+# dvue generic combine UI (enables mixing SCHISM + other registered sources)
+dvue ui --plugin schismviz.readers study1/param.nml study2/param.nml
+```
+
+### Differences from `schismviz output`
+
+| Feature | `schismviz output` | `schismviz combine` |
+|---|---|---|
+| Observation datastore | Yes (via `datastore:` YAML key) | No (dvue-native pattern) |
+| Unit conversion | Yes (`convert_units` toggle) | No (raw units) |
+| Mix with other dvue sources | No | Yes (via `--plugin`) |
+| Auto time_range from study | Yes | Yes |
+| Drag-and-drop additional files | No | Yes (dvue UI) |
 
 ## `schismviz calib`
 

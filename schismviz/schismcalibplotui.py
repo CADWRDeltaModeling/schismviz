@@ -286,7 +286,7 @@ class SchismCalibPlotUIManager(DataUIManager):
             if isinstance(dfcat, gpd.GeoDataFrame) and dfcat.crs is not None
             else None
         )
-        catalog = DataCatalog(crs=geo_crs)
+        catalog = DataCatalog(primary_key=["id", "variable"], crs=geo_crs)
         for _, row in dfcat.iterrows():
             ref_name = f"{row['id']}_{row['variable']}"
             attrs = {k: v for k, v in row.items() if k != "geometry"}
