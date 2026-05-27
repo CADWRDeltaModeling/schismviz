@@ -62,6 +62,9 @@ suxarray = [
 [project.scripts]
 schismviz = "schismviz.cli:main"
 
+[project.entry-points."dvue.plugins"]
+schismviz = "schismviz.readers:register_readers"
+
 [project.urls]
 Homepage = "https://github.com/cadwrdeltamodeling/schismviz"
 Documentation = "https://github.com/cadwrdeltamodeling/schismviz#readme"

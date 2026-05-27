@@ -35,6 +35,20 @@ def test_registration_on_import():
     assert ReaderRegistry.can_handle("param.nml.tropic"), ".nml.tropic not registered"
 
 
+def test_register_readers_function_registers_plugin_mappings():
+    """register_readers() maps schism_output and supported extensions."""
+    from schismviz.readers import SchismOutputReader, register_readers
+
+    register_readers()
+
+    readers = ReaderRegistry.get_registered_readers()
+    extensions = ReaderRegistry.get_registered_extensions()
+
+    assert readers.get("schism_output") is SchismOutputReader
+    for ext in [".nml", ".clinic", ".barotropic", ".tropic", ".yaml", ".yml"]:
+        assert extensions.get(ext) is SchismOutputReader
+
+
 def test_ref_type():
     """SchismDataReference advertises ref_type='schism_output'."""
     from schismviz.readers import SchismDataReference

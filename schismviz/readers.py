@@ -7,8 +7,9 @@ UI::
     dvue ui --plugin schismviz.readers /path/to/study/param.nml
     dvue ui --plugin schismviz.readers /path/to/schism_studies.yaml
 
-The registration call at the bottom of this module fires at import time,
-so all three entry points work:
+The :func:`register_readers` function is used by setuptools entry points
+(``dvue.plugins`` group).  For backward compatibility, registration also
+fires at import time, so all three entry points work:
 
 1. ``dvue ui --plugin schismviz.readers`` (generic dvue combine UI)
 2. ``schismviz combine`` (SCHISM-specific combine UI via this package's CLI)
@@ -534,21 +535,33 @@ DVueUI_CRS = ccrs.UTM(10)
 
 
 # ---------------------------------------------------------------------------
-# Registration — runs at import time
+# Registration
 # ---------------------------------------------------------------------------
 
-# Compound NML extensions (.nml.clinic, .nml.barotropic, .nml.tropic) are
-# identified by their *last* suffix via os.path.splitext in the registry;
-# scan() inspects the full suffix chain to confirm the .nml prefix.
-ReaderRegistry.register(
-    "schism_output",
-    SchismOutputReader,
-    extensions=[
-        ".nml",
-        ".clinic",
-        ".barotropic",
-        ".tropic",
-        ".yaml",
-        ".yml",
-    ],
-)
+
+def register_readers() -> None:
+    """Register SCHISM readers with dvue's :class:`ReaderRegistry`.
+
+    This is the callable referenced by the ``dvue.plugins`` entry point:
+
+    ``schismviz = \"schismviz.readers:register_readers\"``.
+    """
+
+    # Compound NML extensions (.nml.clinic, .nml.barotropic, .nml.tropic) are
+    # identified by their *last* suffix via os.path.splitext in the registry;
+    # scan() inspects the full suffix chain to confirm the .nml prefix.
+    ReaderRegistry.register(
+        "schism_output",
+        SchismOutputReader,
+        extensions=[
+            ".nml",
+            ".clinic",
+            ".barotropic",
+            ".tropic",
+            ".yaml",
+            ".yml",
+        ],
+    )
+
+# Backward compatibility: preserve import-time registration behavior.
+register_readers()
