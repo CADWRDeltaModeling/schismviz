@@ -97,6 +97,11 @@ class SchismOutputReader(DataReferenceReader):
         self.source = source
         self._study: Optional[SchismStudy] = None
 
+    @classmethod
+    def catalog_crs(cls) -> str:
+        """SCHISM Bay-Delta geometry is in UTM Zone 10N (EPSG:32610)."""
+        return "EPSG:32610"
+
     # ------------------------------------------------------------------
     # Scan (file discovery)
     # ------------------------------------------------------------------
