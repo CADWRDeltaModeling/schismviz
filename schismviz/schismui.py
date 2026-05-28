@@ -282,26 +282,29 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
             return f"{name}"
         return f'{r["source"]}:{name}'
 
-    def get_table_column_width_map(self):
-        """only columns to be displayed in the table should be included in the map"""
-        column_width_map = {
-            "id": "10%",
-            "station_name": "15%",
-            "variable": "15%",
-            "unit": "15%",
-            "source": "10%",
+    def get_table_schema(self, df=None):
+        if df is None:
+            df = self.get_data_catalog()
+        return {
+            "required_columns": ["id", "station_name", "variable", "unit", "source"],
+            "optional_columns": [],
+            "hidden_by_default": [],
+            "drop_if_all_null": False,
+            "column_widths": {
+                "id": "10%",
+                "station_name": "15%",
+                "variable": "15%",
+                "unit": "15%",
+                "source": "10%",
+            },
+            "filters": {
+                "id": {"type": "input", "func": "like", "placeholder": "Enter match"},
+                "station_name": {"type": "input", "func": "like", "placeholder": "Enter match"},
+                "variable": {"type": "input", "func": "like", "placeholder": "Enter match"},
+                "unit": {"type": "input", "func": "like", "placeholder": "Enter match"},
+                "source": {"type": "input", "func": "like", "placeholder": "Enter match"},
+            },
         }
-        return column_width_map
-
-    def get_table_filters(self):
-        table_filters = {
-            "id": {"type": "input", "func": "like", "placeholder": "Enter match"},
-            "station_name": {"type": "input", "func": "like", "placeholder": "Enter match"},
-            "variable": {"type": "input", "func": "like", "placeholder": "Enter match"},
-            "unit": {"type": "input", "func": "like", "placeholder": "Enter match"},
-            "source": {"type": "input", "func": "like", "placeholder": "Enter match"},
-        }
-        return table_filters
 
     def is_irregular(self, r):
         return False

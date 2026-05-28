@@ -304,28 +304,27 @@ class SchismCalibPlotUIManager(DataUIManager):
                 pass  # duplicate id+variable; skip
         return catalog
 
-    def get_table_column_width_map(self):
-        """only columns to be displayed in the table should be included in the map"""
-        column_width_map = {
-            "id": "10%",
-            "name": "65%",
-            "variable": "15%",
-            "unit": "10%",
-        }
-        return column_width_map
-
-    def get_table_filters(self):
-        table_filters = {
-            "id": {"type": "input", "func": "like", "placeholder": "Enter match"},
-            "name": {"type": "input", "func": "like", "placeholder": "Enter match"},
-            "variable": {"type": "input", "func": "like", "placeholder": "Enter match"},
-            "unit": {
-                "type": "input",
-                "func": "like",
-                "placeholder": "Enter match",
+    def get_table_schema(self, df=None):
+        if df is None:
+            df = self.get_data_catalog()
+        return {
+            "required_columns": ["id", "name", "variable", "unit"],
+            "optional_columns": [],
+            "hidden_by_default": [],
+            "drop_if_all_null": False,
+            "column_widths": {
+                "id": "10%",
+                "name": "65%",
+                "variable": "15%",
+                "unit": "10%",
+            },
+            "filters": {
+                "id": {"type": "input", "func": "like", "placeholder": "Enter match"},
+                "name": {"type": "input", "func": "like", "placeholder": "Enter match"},
+                "variable": {"type": "input", "func": "like", "placeholder": "Enter match"},
+                "unit": {"type": "input", "func": "like", "placeholder": "Enter match"},
             },
         }
-        return table_filters
 
     def get_datastore_param_name(self, variable):
         return VAR_to_PARAM[variable]

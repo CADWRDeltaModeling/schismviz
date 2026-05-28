@@ -477,35 +477,26 @@ class SchismRegistryUIManager(RegistryUIManager):
     # Table / map configuration
     # ------------------------------------------------------------------
 
-    def _get_table_column_width_map(self) -> dict:
+    def get_table_schema(self, df=None):
+        if df is None:
+            df = self.get_data_catalog()
+        optional = [c for c in ["source_num"] if c in (df.columns if hasattr(df, "columns") else [])]
         return {
-            "station": "10%",
-            "station_name": "15%",
-            "variable": "12%",
-            "unit": "10%",
-        }
-
-    def get_table_filters(self) -> dict:
-        return {
-            "station": {
-                "type": "input",
-                "func": "like",
-                "placeholder": "Enter match",
+            "required_columns": ["station", "station_name", "variable", "unit"],
+            "optional_columns": optional,
+            "hidden_by_default": [],
+            "drop_if_all_null": True,
+            "column_widths": {
+                "station": "10%",
+                "station_name": "15%",
+                "variable": "12%",
+                "unit": "10%",
             },
-            "station_name": {
-                "type": "input",
-                "func": "like",
-                "placeholder": "Enter match",
-            },
-            "variable": {
-                "type": "input",
-                "func": "like",
-                "placeholder": "Enter match",
-            },
-            "unit": {
-                "type": "input",
-                "func": "like",
-                "placeholder": "Enter match",
+            "filters": {
+                "station": {"type": "input", "func": "like", "placeholder": "Enter match"},
+                "station_name": {"type": "input", "func": "like", "placeholder": "Enter match"},
+                "variable": {"type": "input", "func": "like", "placeholder": "Enter match"},
+                "unit": {"type": "input", "func": "like", "placeholder": "Enter match"},
             },
         }
 

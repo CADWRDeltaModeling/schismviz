@@ -292,27 +292,25 @@ class SchismOut2DUIManager(TimeSeriesDataUIManager):
     # DataUIManager required overrides — table / map configuration
     # ------------------------------------------------------------------
 
-    def get_table_column_width_map(self) -> dict:
+    def get_table_schema(self, df=None):
+        if df is None:
+            df = self.get_data_catalog()
         return {
-            "node_id": "10%",
-            "node_name": "15%",
-            "variable": "20%",
-            "unit": "10%",
-            "x": "15%",
-            "y": "15%",
-        }
-
-    def get_table_filters(self) -> dict:
-        return {
-            "node_name": {
-                "type": "input",
-                "func": "like",
-                "placeholder": "Enter match",
+            "required_columns": ["node_id", "node_name", "variable", "unit", "x", "y"],
+            "optional_columns": [],
+            "hidden_by_default": [],
+            "drop_if_all_null": False,
+            "column_widths": {
+                "node_id": "10%",
+                "node_name": "15%",
+                "variable": "20%",
+                "unit": "10%",
+                "x": "15%",
+                "y": "15%",
             },
-            "variable": {
-                "type": "input",
-                "func": "like",
-                "placeholder": "Enter match",
+            "filters": {
+                "node_name": {"type": "input", "func": "like", "placeholder": "Enter match"},
+                "variable": {"type": "input", "func": "like", "placeholder": "Enter match"},
             },
         }
 
