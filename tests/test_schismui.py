@@ -372,7 +372,12 @@ def test_reader_load_no_convert():
 
 
 def test_reader_load_converts_units():
-    """Reader calls convert_to_SI when convert_units=True."""
+    """Reader does NOT call convert_to_SI even when manager.convert_units=True.
+
+    Unit conversion is applied post-cache in SchismOutputUIDataManager.get_data(),
+    not in the reader, so that the raw-series cache remains valid across
+    convert_units toggle events.
+    """
     ts = _make_time_series()
     ts.attrs["unit"] = "m"
     study = MagicMock()
@@ -385,11 +390,9 @@ def test_reader_load_converts_units():
         manager=manager,
     )
     attrs = {"source": "study1", "unit": "m", "filename": "/fake/output1/staout_1", "variable": "elev"}
-    converted_ts = ts.copy()
-    converted_ts.attrs["unit"] = "m"
-    with patch("schismviz.schismui.schismstudy.convert_to_SI", return_value=(converted_ts, "m")) as mock_convert:
+    with patch("schismviz.schismui.schismstudy.convert_to_SI") as mock_convert:
         df = reader.load(**attrs)
-    mock_convert.assert_called_once()
+    mock_convert.assert_not_called()
     assert isinstance(df, pd.DataFrame)
 
 
