@@ -35,7 +35,7 @@ requirements:
     {% endif %}
     {% endfor %}
     # cadwr-dms channel packages (not on PyPI)
-    - dvue
+    - dvue !=2026.04.19
     - schimpy
     - vtools3
     - dms-datastore
