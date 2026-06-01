@@ -33,6 +33,7 @@ hv.extension("bokeh")
 pn.extension("tabulator", notifications=True, design="native")
 
 from dvue.tsdataui import TimeSeriesDataUIManager, TimeSeriesPlotAction
+from schismviz._nc_utils import _parse_base_date, _decode_times as _decode_times_util
 
 logger = logging.getLogger(__name__)
 
@@ -47,16 +48,6 @@ _OUT2D_NODE_VARS: dict[str, tuple[str, str]] = {
     "depthAverageVelY": ("vel_y", "m/s"),
     "dryFlagNode": ("dryFlag", ""),
 }
-
-
-def _parse_base_date(base_date_str: str) -> pd.Timestamp:
-    """Parse the SCHISM *base_date* attribute string to a Timestamp.
-
-    The attribute is formatted as ``' 2009  2 10       0.00       8.00'``.
-    Only the first three integer fields (year, month, day) are used.
-    """
-    parts = base_date_str.split()
-    return pd.Timestamp(int(parts[0]), int(parts[1]), int(parts[2]))
 
 
 class SchismOut2DPlotAction(TimeSeriesPlotAction):
@@ -187,7 +178,7 @@ class SchismOut2DUIManager(TimeSeriesDataUIManager):
 
     def _decode_times(self, time_seconds) -> pd.DatetimeIndex:
         """Convert seconds-since-base_date array to DatetimeIndex."""
-        return self._base_date + pd.to_timedelta(time_seconds, unit="s")
+        return _decode_times_util(self._base_date, time_seconds)
 
     # ------------------------------------------------------------------
     # Catalog construction

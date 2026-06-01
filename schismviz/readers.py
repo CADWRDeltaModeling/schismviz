@@ -559,5 +559,10 @@ def register_readers() -> None:
         ],
     )
 
+    # Combined SCHISM netCDF output files (out2d_*.nc, salinity_*.nc, etc.)
+    from schismviz.schism_nc_reader import SchismNcReader
+
+    ReaderRegistry.register("schism_nc", SchismNcReader, extensions=[".nc"])
+
 # Backward compatibility: preserve import-time registration behavior.
 register_readers()
