@@ -80,3 +80,4 @@ target/
 # setuptools_scm generated version module
 schismviz/_version.py
 
+.vscode/settings.json
