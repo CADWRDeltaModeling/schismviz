@@ -124,6 +124,8 @@ class SchismTimeSeriesPlotAction(TimeSeriesPlotAction):
 
 class SchismOutputUIDataManager(TimeSeriesDataUIManager):
 
+    # Default to True: SCHISM model output is typically in model-native units
+    # (ft, cfs, deg F, etc.) that benefit from automatic SI conversion.
     convert_units = param.Boolean(default=True, doc="Convert units to SI")
     show_source_compare = param.Boolean(
         default=True,
@@ -169,10 +171,16 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
         )
         self._dvue_catalog = self._build_dvue_catalog(geo_crs)
 
-    def get_widgets(self):
-        widget_tabs = super().get_widgets()
-        widget_tabs["Plot"].append(pn.Param(self.param.convert_units))
-        return widget_tabs
+    def apply_unit_conversion(self, data):
+        """Convert SCHISM model-native units (ft, cfs, deg F, µS/cm) to SI.
+
+        The ``unit`` string is read from ``data.attrs["unit"]`` and updated
+        to the converted unit so that axis labels stay in sync.
+        """
+        unit = data.attrs.get("unit", "")
+        data, unit = schismstudy.convert_to_SI(data, unit)
+        data.attrs["unit"] = unit
+        return data
 
     def _merge_catalogs(self, studies, datastore):
         """
@@ -242,21 +250,6 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
             except ValueError:
                 pass  # duplicate name; skip
         return catalog
-
-    def get_data(self, df):
-        """Yield data frames for each selected row, applying unit conversion.
-
-        Raw data is cached by :class:`~dvue.catalog.DataReference`; unit
-        conversion is applied here (post-cache) so that toggling
-        ``convert_units`` is reflected immediately without invalidating the
-        cache.
-        """
-        for data in super().get_data(df):
-            if self.convert_units:
-                unit = data.attrs.get("unit", "")
-                data, unit = schismstudy.convert_to_SI(data, unit)
-                data.attrs["unit"] = unit
-            yield data
 
     def get_time_range(self, dfcat):
         return self.time_range
