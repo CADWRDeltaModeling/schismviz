@@ -127,6 +127,7 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
     # Default to True: SCHISM model output is typically in model-native units
     # (ft, cfs, deg F, etc.) that benefit from automatic SI conversion.
     convert_units = param.Boolean(default=True, doc="Convert units to SI")
+    show_convert_units = param.Boolean(default=True)
     show_source_compare = param.Boolean(
         default=True,
         doc="Show the Source Compare action in the Add to Catalog menu.",
