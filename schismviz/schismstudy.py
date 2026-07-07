@@ -141,8 +141,15 @@ class SchismStudy(param.Parameterized):
             if not os.access(test_cache_path, os.W_OK):
                 raise PermissionError("No write access to cache directory.")
             self.cache = diskcache.Cache(self.base_dir / ".cache-schismstudy")
-        except:
-            logger.warning("Could not create cache. Using temporary cache.")
+        except Exception as e:
+            logger.warning(
+                "Could not create persistent cache in '%s' (%s: %s). "
+                "Using a temporary in-memory cache instead. "
+                "If you need a persistent cache, ensure the directory is writable.",
+                self.base_dir / ".cache-schismstudy",
+                type(e).__name__,
+                e,
+            )
             self.cache = diskcache.Cache()
         # Clear the cache on initialization to start fresh each time
         if clear_cache_on_init:
@@ -299,11 +306,35 @@ class SchismStudy(param.Parameterized):
             return self.cache[fpath]
         else:
             logger.info(f"Reading staout: {fpath}")
-            staout = station.read_staout(
-                fpath,
-                self.stations_in,
-                self.reftime,
-            )
+            fpath_obj = pathlib.Path(fpath)
+            if not fpath_obj.exists():
+                raise FileNotFoundError(
+                    f"Station output file not found: '{fpath}'. "
+                    "Check that the simulation completed successfully."
+                )
+            if not os.access(fpath_obj, os.R_OK):
+                raise PermissionError(
+                    f"Station output file exists but is not readable: '{fpath}'. "
+                    "Check file permissions (run: ls -l '{fpath}')."
+                )
+            if fpath_obj.stat().st_size == 0:
+                raise ValueError(
+                    f"Station output file is empty (0 bytes): '{fpath}'. "
+                    "This usually means the simulation did not write any output for this "
+                    "variable. Check that the simulation completed successfully."
+                )
+            try:
+                staout = station.read_staout(
+                    fpath,
+                    self.stations_in,
+                    self.reftime,
+                )
+            except pd.errors.EmptyDataError:
+                raise ValueError(
+                    f"Station output file has no parseable columns: '{fpath}'. "
+                    "The file exists and is readable but contains no data. "
+                    "This may indicate a truncated or corrupted output file."
+                ) from None
             staout.index.name = "Time"
             self.cache[fpath] = staout
             return staout
