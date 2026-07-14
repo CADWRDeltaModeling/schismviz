@@ -252,6 +252,20 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
                 pass  # duplicate name; skip
         return catalog
 
+    def get_convertible_unit_groups(self):
+        """Unit groups for dual y-axis when convert_units is off.
+
+        Covers the raw unit strings produced by SCHISM output files before
+        :func:`~schismviz.schismstudy.convert_to_SI` is applied.  Unit
+        strings are compared after lowercasing in the renderer.
+        """
+        return [
+            {"ft", "feet", "meters"},
+            {"cfs", "ft^3/s", "m^3/s"},
+            {"ec", "us/cm", "micros/cm", "psu"},
+            {"deg f", "degf", "deg_f", "deg_c"},
+        ]
+
     def get_time_range(self, dfcat):
         return self.time_range
 
