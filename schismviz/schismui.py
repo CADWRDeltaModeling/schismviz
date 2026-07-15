@@ -266,6 +266,37 @@ class SchismOutputUIDataManager(TimeSeriesDataUIManager):
             {"deg f", "degf", "deg_f", "deg_c"},
         ]
 
+    # Secondary axis specs: shown as a right-side reference axis when
+    # convert_units=True (SI primary) or False (US-customary primary).
+    _SECONDARY_AXIS_SPECS = {
+        # SI units (convert_units=True) → US-customary reference
+        "meters":  {"label": "feet",    "js_code": "tick * 3.28084"},
+        "m^3/s":   {"label": "cfs",     "js_code": "tick * 35.3147"},
+        "psu":     {"label": "\u00b5S/cm\u2248", "js_code": "tick * 1600"},
+        "deg_c":   {"label": "\u00b0F", "js_code": "tick * 1.8 + 32"},
+        # US-customary units (convert_units=False) → metric reference
+        "ft":      {"label": "meters",  "js_code": "tick * 0.3048"},
+        "feet":    {"label": "meters",  "js_code": "tick * 0.3048"},
+        "cfs":     {"label": "m\u00b3/s",  "js_code": "tick / 35.3147"},
+        "ft^3/s":  {"label": "m\u00b3/s",  "js_code": "tick / 35.3147"},
+        "us/cm":   {"label": "PSU\u2248",  "js_code": "tick / 1600"},
+        "micros/cm": {"label": "PSU\u2248", "js_code": "tick / 1600"},
+        "ec":      {"label": "PSU\u2248",  "js_code": "tick / 1600"},
+        "deg f":   {"label": "\u00b0C",  "js_code": "(tick - 32) / 1.8"},
+        "degf":    {"label": "\u00b0C",  "js_code": "(tick - 32) / 1.8"},
+        "deg_f":   {"label": "\u00b0C",  "js_code": "(tick - 32) / 1.8"},
+    }
+
+    def get_secondary_axis_spec(self, unit: str):
+        """Reference axis in the complementary unit system.
+
+        When ``convert_units=True`` the primary axis is in SI; the secondary
+        axis shows the US-customary equivalent.  When ``convert_units=False``
+        the primary axis is in native SCHISM units (typically US-customary)
+        and the secondary axis shows the SI equivalent.
+        """
+        return self._SECONDARY_AXIS_SPECS.get(unit.lower())
+
     def get_time_range(self, dfcat):
         return self.time_range
 
