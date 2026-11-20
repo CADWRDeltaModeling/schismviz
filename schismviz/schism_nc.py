@@ -45,7 +45,7 @@ import holoviews as hv
 import panel as pn
 
 hv.extension("bokeh")
-pn.extension("tabulator", notifications=True, design="native")
+pn.extension("tabulator", notifications=True, design="material")
 
 from dvue.tsdataui import TimeSeriesDataUIManager, TimeSeriesPlotAction
 from schismviz._nc_utils import (
